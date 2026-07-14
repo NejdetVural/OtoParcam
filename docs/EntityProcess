@@ -1,0 +1,62 @@
+﻿# Entity Progress
+
+| Entity | Status |
+|---------|--------|
+| Product | 🟡 In Progress |
+| Category | ⏳ Not Started |
+| VehicleBrand | ⏳ Not Started |
+| VehicleModel | ⏳ Not Started |
+| ProductCompatibility | ⏳ Not Started |
+| ProductImage | ⏳ Not Started |
+| PurchaseRequest | ⏳ Not Started |
+| PurchaseRequestItem | ⏳ Not Started |
+| Customer | ⏳ Not Started |
+| Favorite | ⏳ Not Started |
+
+
+## Product
+
+✔ Every physical spare part is a separate Product.
+
+✔ Stock quantity will not be used.
+
+✔ Product name will be generated automatically.
+
+✔ Price is optional.
+
+✔ If Price is null, UI displays "Fiyat İçin Arayın".
+
+✔ Description stores scratches, dents and other physical details.
+
+✔ Color uses enum.
+
+✔ No Condition field.
+
+✔ No ProductCode (v1.0).
+
+✔ No InternalNote (v1.0).
+
+✔ No PartOrigin (only original used parts are sold).
+
+✔ One SourceVehicleModel.
+
+✔ Multiple CompatibleVehicleModels.
+
+✔ Compatibility is selected manually by the administrator.
+
+✔ Product title represents the source vehicle.
+
+✔ Customers are informed that compatibility is listed separately.
+
+---
+
+## Pending
+
+- Category
+- VehicleBrand
+- VehicleModel
+- ProductCompatibility
+- ProductImage
+- PurchaseRequest
+- PurchaseRequestItem
+- Favorite
