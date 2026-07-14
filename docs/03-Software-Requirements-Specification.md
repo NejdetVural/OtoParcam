@@ -301,6 +301,24 @@ The system shall display "Fiyat Ýçin Arayýn" when no product price is specified.
 
 ---
 
+## FR-22 User Login
+
+The system shall allow customers to authenticate using either their email address or phone number together with their password.
+
+---
+
+## FR-23 Email Verification
+
+The system shall require newly registered customers to verify their email address before activating their account.
+
+---
+
+## FR-24 Password Encryption
+
+The system shall securely store user passwords using a strong password hashing algorithm.
+
+---
+
 # 4. Non-Functional Requirements
 
 ## NFR-01 Performance
@@ -344,6 +362,16 @@ The system shall support future modules such as:
 - QR Code
 - Barcode
 - Mobile Application
+
+---
+
+## NFR-07 Security
+
+Passwords shall never be stored in plain text.
+
+User authentication shall follow industry-standard security practices.
+
+Email addresses and phone numbers shall be unique.
 
 ---
 

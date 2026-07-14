@@ -98,7 +98,7 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-03** Every product must have a unique product code.
 
-**BR-04** A product price is optional.
+**BR-04** A product price is optional if its null than UI displays "Fiyat için arayýn".
 
 **BR-05** Stock quantity cannot be negative.
 
@@ -112,6 +112,24 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-39** Purchase requests may be created regardless of whether the product price is displayed.
 
+**BR-40** Category names shall be unique.
+
+**BR-41** A category may contain multiple products.
+
+**BR-42** A category cannot be deleted while it is referenced by one or more products.
+
+**BR-43** Administrators may create new categories.
+
+**BR-60** Every product shall contain between one and ten images.
+
+**BR-61** The first uploaded image shall be used as the product cover image.
+
+**BR-62** Images shall be displayed according to their DisplayOrder.
+
+**BR-63** When an image is deleted, the remaining images shall be reordered automatically.
+
+**BR-64** Each product image belongs to exactly one product.
+
 ---
 
 5.2 ## Vehicle Rules
@@ -121,6 +139,25 @@ The following business rules define the business logic and constraints of the Ot
 **BR-10** Compatibility records cannot reference non-existing vehicle models.
 
 **BR-11** One product may be associated with multiple vehicle models.
+
+**BR-44** Vehicle brand names shall be unique.
+
+**BR-45** A vehicle brand may contain multiple vehicle models.
+
+**BR-46** A vehicle brand cannot be deleted while it is referenced by one or more vehicle models.
+
+**BR-47** Administrators may create new vehicle brands.
+
+**BR-48** Vehicle model names shall be stored separately from their production years.
+
+**BR-49** StartYear shall be less than or equal to EndYear.
+
+**BR-50** Variant is optional.
+
+**BR-51** Variant is used for display purposes only and shall not be used for searching or filtering.
+
+**BR-52** A vehicle model cannot be deleted while it is referenced by Products or ProductCompatibility records.
+
 
 ---
 
@@ -135,6 +172,14 @@ The following business rules define the business logic and constraints of the Ot
 **BR-15** Customers can view only their own purchase requests.
 
 **BR-16** Customers may add products to their favorites after logging in.
+
+**BR-65** Every customer shall provide a unique email address.
+
+**BR-66** Every customer shall provide a unique phone number.
+
+**BR-67** Customers may authenticate using either their email address or phone number.
+
+**BR-68** Customer accounts shall require email verification before becoming active.
 
 ---
 
@@ -183,6 +228,23 @@ The following business rules define the business logic and constraints of the Ot
 **BR-34** Each purchase request shall maintain its own independent pricing information.
 
 **BR-35** A purchase request shall have one of the following statuses:
+
+5.7 ### Product Compatibility Rules
+
+**BR-53** A product may be compatible with multiple vehicle models.
+
+**BR-54** A vehicle model may be compatible with multiple products.
+
+**BR-55** The combination of ProductId and VehicleModelId shall be unique.
+
+**BR-56** Compatibility records shall be created manually by administrators.
+
+**BR-57** Compatibility information shall be based only on the vehicle model in version 1.0.
+
+**BR-58** Engine type, fuel type, transmission, package and other technical differences shall not be stored as compatibility criteria.
+
+**BR-59** Additional compatibility details may be provided in the product description or communicated outside the system.
+
 - Pending
 - WaitingForCustomer
 - Confirmed
