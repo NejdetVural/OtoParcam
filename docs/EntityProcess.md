@@ -115,10 +115,6 @@ Category (1)
 
 ## VehicleBrand
 
-## VehicleBrand
-
-## VehicleBrand
-
 ✔ A VehicleBrand represents a vehicle manufacturer.
 
 ✔ VehicleBrand names must be unique.
@@ -466,14 +462,91 @@ Product (1)
 ✔ CreatedAt is automatically assigned when the favorite is created.
 
 ---
+    
+## PurchaseRequest
 
+✔ A PurchaseRequest represents a customer's request to purchase one or more products.
 
-## Pending
+✔ Every PurchaseRequest belongs to exactly one ApplicationUser.
 
-## Pending
+✔ A PurchaseRequest contains one or more PurchaseRequestItems.
 
-- PurchaseRequest
-- PurchaseRequestItem
+✔ PurchaseRequests use predefined status values.
+
+✔ Negotiation is performed outside the system (e.g., by phone).
+
+✔ Administrators record the negotiated price after a successful negotiation.
+
+✔ If the negotiated price is updated, the PurchaseRequest status becomes WaitingForCustomer.
+
+✔ Customers confirm that the negotiated price entered into the system matches the agreed price.
+
+✔ PurchaseRequests are never physically deleted.
+
+✔ PurchaseRequest items cannot be modified after the request is created.
+
+✔ Total price is calculated from PurchaseRequestItems and is not stored.
+
++---------------------------+
+| PurchaseRequest           |
++---------------------------+
+| Id                        |
+| ApplicationUserId         |
+| Status                    |
+| CreatedAt                 |
+| UpdatedAt                 |
++---------------------------+
+
+ApplicationUser (1)
+        │
+        │
+        ▼
+PurchaseRequest (*)
+        │
+        │
+        ▼
+PurchaseRequestItem (*)
+        │
+        │
+        ▼
+Product (1)
+
+----
+
+## PurchaseRequestItem
+
+✔ Every PurchaseRequestItem belongs to exactly one PurchaseRequest.
+
+✔ Every PurchaseRequestItem references exactly one Product.
+
+✔ Quantity is not stored because each Product represents one unique physical spare part.
+
+✔ OriginalPrice stores the product price at the time the request is created.
+
+✔ NegotiatedPrice is optional.
+
+✔ NegotiatedPrice does not modify the original Product price.
+
+✔ Each PurchaseRequestItem maintains its own independent pricing information.
+
++---------------------------+
+| PurchaseRequestItem       |
++---------------------------+
+| Id                        |
+| PurchaseRequestId         |
+| ProductId                 |
+| OriginalPrice             |
+| NegotiatedPrice           |
++---------------------------+
+PurchaseRequest (1)
+        │
+        │
+        ▼
+PurchaseRequestItem
+        ▲
+        │
+        │
+Product (1)
 
 
 # Global Design Decisions
@@ -495,3 +568,5 @@ Product (1)
 ✔ Authentication is implemented using ASP.NET Core Identity.
 
 ✔ Administrators and customers are distinguished by roles rather than separate entities.
+
+✔ Every foreign key is named using the referenced entity name followed by "Id" (e.g., ProductId, CategoryId, ApplicationUserId).
