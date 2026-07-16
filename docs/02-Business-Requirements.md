@@ -96,17 +96,17 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-02** Every product must have at least one image.
 
-**BR-03** Every product must have a unique product code.
+**BR-03** Every product must have a unique id.
 
 **BR-04** A product price is optional if its null than UI displays "Fiyat için arayýn".
 
-**BR-05** Stock quantity cannot be negative.
+**BR-05** Stock status cannot be null
 
 **BR-06** A product may be compatible with multiple vehicle models.
 
 **BR-07** Compatibility information must be specified before a product becomes available.
 
-**BR-08** Products with zero stock are automatically marked as **Out of Stock**.
+**BR-08** Products with null stock status are automatically marked as **Out of Stock**.
 
 **BR-38** If no price is specified, the system shall display "Contact for Price".
 
@@ -191,7 +191,7 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-19** Purchase requests are reviewed by an administrator.
 
-**BR-20** Stock quantity is decreased only after the administrator approves the purchase request.
+**BR-20** Stock status is changes only after the administrator approves the purchase request.
 
 **BR-21** Cancelled or rejected purchase requests do not affect inventory.
 
@@ -252,7 +252,7 @@ The following business rules define the business logic and constraints of the Ot
 - Rejected
 - Cancelled
 
-**BR-36** Product stock shall be decreased only after the purchase request reaches the **Approved** status.
+**BR-36** Product stock shall be changed only after the purchase request reaches the **Approved** status.
 
 ---
 
