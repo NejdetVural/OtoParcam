@@ -135,3 +135,23 @@ Compatibility is shown separately.
 Product stores one SourceVehicleModel.
 
 Compatible vehicles are managed separately.
+
+---
+
+## DECISION-006
+
+### Title
+
+Database engine changed from PostgreSQL to Microsoft SQL Server
+
+### Status
+
+Accepted
+
+### Reason
+
+Mentor guidance during internship; team/deployment environment standardizes on SQL Server. SQL Server Developer Edition is free and has full feature parity with production editions, suitable for development before real data is introduced.
+
+### Consequences
+
+All VARCHAR/TEXT columns become NVARCHAR/NVARCHAR(MAX) for Turkish character support. UUID becomes UNIQUEIDENTIFIER. A licensed edition (Express, Standard, or Azure SQL) must be selected before the system handles real production data — Developer Edition is licensed for development/test only.

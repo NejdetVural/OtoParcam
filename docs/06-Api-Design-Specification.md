@@ -23,6 +23,9 @@ Date 17.07.2026
 - **Clarified `DELETE /products/{id}`** as a non-destructive status change, to avoid future ambiguity with a hard delete.
 - **Clarified negotiation as optional** in Section 8 — confirmed the confirm/reject endpoints apply whether or not
   `/negotiation` was called first, resolving the gap with BRD Alt Flow 5a (see BRD v1.1 changelog for the underlying decision).
+- **Standardized purchase request statuses** to: `Pending`, `WaitingForCustomerConfirmation`, `Approved`, `Rejected`, `Cancelled`.
+- **Standardized purchase request item field name**: the original product price snapshot is named `originalPrice`.
+- **Clarified final approval ownership:** final approval (son onay) is performed by the Customer via the confirm endpoint.
 
 ---
 
@@ -630,10 +633,12 @@ Authentication Required
 - Purchase request statuses shall be managed automatically by the system.
 - Clients shall never update purchase request statuses directly.
 - Product prices shall never be modified during negotiation.
-- Negotiated prices shall be stored only in PurchaseRequestItem.
+- Negotiated prices shall be stored only in `PurchaseRequestItem` (`negotiatedPrice`).
+- The original product price at request creation is stored in `PurchaseRequestItem.originalPrice`.
 - Hidden and Sold products shall not appear in public product listings.
 - Email verification shall be required before login.
 - Negotiation is optional; a purchase request may be approved via direct customer confirmation without a negotiated price.
+- Final approval of a purchase request is performed by the Customer via `PATCH /purchase-requests/{id}/confirm`.
 
 ---
 

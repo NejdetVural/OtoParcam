@@ -1,13 +1,26 @@
-﻿
-# OtoParcam
+﻿# OtoParcam
 
 ## Database Design Report (DDR)
 
-**Version:** 1.0
+**Version:** 1.1
 
 **Author:** Nejdet Vural
 
-**Date:** 16.07.2026
+**Date:** 20.07.2026
+
+---
+
+## Changelog (v1.0 → v1.1)
+
+- **Database engine changed from PostgreSQL to Microsoft SQL Server** (Section 2), per DECISION-006. All column types across
+  all 10 entities converted accordingly: `UUID` → `UNIQUEIDENTIFIER`, `TIMESTAMP WITH TIME ZONE` → `DATETIME2`, `TEXT` →
+  `NVARCHAR(MAX)`, `VARCHAR(n)` → `NVARCHAR(n)`, `INTEGER` → `INT`. `DECIMAL(10,2)` and `SMALLINT` are unchanged.
+- **`Product.StockStatus` renamed to `Product.Status`** (column, index, and all references), to match the `Status` property
+  name already used in the Domain layer's `Product` entity.
+- **`ProductCompatibility` and `Favorite` primary keys confirmed as surrogate `Id`** (not composite), matching the existing
+  ER diagram — this was an open question in earlier drafts and is now settled.
+- **`PurchaseRequestItem.PriceSnapshot` renamed to `OriginalPrice`**, to match the Domain layer's `PurchaseRequestItem` entity.
+  The ER diagram (07-ERdiagram.drawio) still says `PriceSnapshot` and needs regenerating to match.
 
 ---
 
@@ -37,7 +50,7 @@ The system follows a Database-First domain design approach.
 
 Database Engine
 
-* PostgreSQL
+* Microsoft SQL Server
 
 ---
 
@@ -166,17 +179,17 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 
 ## Columns
 
-| Column               | PostgreSQL Type          | Nullable | Description                                                              |
+| Column               | SQL Server Type          | Nullable | Description                                                              |
 | -------------------- | ------------------------ | -------- | ------------------------------------------------------------------------ |
-| Id                   | UUID                     | No       | Primary key.                                                             |
-| CategoryId           | UUID                     | No       | References the product category.                                         |
-| SourceVehicleModelId | UUID                     | No       | References the vehicle model from which the part was removed.            |
+| Id                   | UNIQUEIDENTIFIER                     | No       | Primary key.                                                             |
+| CategoryId           | UNIQUEIDENTIFIER                     | No       | References the product category.                                         |
+| SourceVehicleModelId | UNIQUEIDENTIFIER                     | No       | References the vehicle model from which the part was removed.            |
 | Price                | DECIMAL(10,2)            | Yes      | Product selling price. If NULL, the UI displays **"Fiyat İçin Arayın"**. |
-| StockStatus          | INTEGER                  | No       | Product availability status (Enum).                                      |
-| Color                | INTEGER                  | No       | Product color (Enum).                                                    |
-| Description          | TEXT                     | Yes      | Stores scratches, dents, missing parts and other physical details.       |
-| CreatedAt            | TIMESTAMP WITH TIME ZONE | No       | Date and time when the product was created.                              |
-| UpdatedAt            | TIMESTAMP WITH TIME ZONE | No       | Date and time of the last update.                                        |
+| Status          | INT                  | No       | Product availability status (Enum).                                      |
+| Color                | INT                  | No       | Product color (Enum).                                                    |
+| Description          | NVARCHAR(MAX)                     | Yes      | Stores scratches, dents, missing parts and other physical details.       |
+| CreatedAt            | DATETIME2 | No       | Date and time when the product was created.                              |
+| UpdatedAt            | DATETIME2 | No       | Date and time of the last update.                                        |
 
 ---
 
@@ -212,7 +225,7 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | PK_Product                      | Primary key lookup                  |
 | IX_Product_CategoryId           | Product filtering by category       |
 | IX_Product_SourceVehicleModelId | Product filtering by source vehicle |
-| IX_Product_StockStatus          | Availability filtering              |
+| IX_Product_Status          | Availability filtering              |
 | IX_Product_Color                | Color filtering                     |
 
 ---
@@ -257,12 +270,12 @@ The Category entity classifies used spare parts into logical groups to simplify 
 
 ## Columns
 
-| Column    | PostgreSQL Type          | Nullable | Description                                  |
+| Column    | SQL Server Type          | Nullable | Description                                  |
 | --------- | ------------------------ | -------- | -------------------------------------------- |
-| Id        | UUID                     | No       | Primary key.                                 |
-| Name      | VARCHAR(100)             | No       | Category name. Must be unique.               |
-| CreatedAt | TIMESTAMP WITH TIME ZONE | No       | Date and time when the category was created. |
-| UpdatedAt | TIMESTAMP WITH TIME ZONE | No       | Date and time of the last update.            |
+| Id        | UNIQUEIDENTIFIER                     | No       | Primary key.                                 |
+| Name      | NVARCHAR(100)             | No       | Category name. Must be unique.               |
+| CreatedAt | DATETIME2 | No       | Date and time when the category was created. |
+| UpdatedAt | DATETIME2 | No       | Date and time of the last update.            |
 
 ---
 
@@ -328,12 +341,12 @@ It enables users to browse and filter products by vehicle brand.
 
 ## Columns
 
-| Column    | PostgreSQL Type          | Nullable | Description                               |
+| Column    | SQL Server Type          | Nullable | Description                               |
 | --------- | ------------------------ | -------- | ----------------------------------------- |
-| Id        | UUID                     | No       | Primary key.                              |
-| Name      | VARCHAR(100)             | No       | Vehicle brand name. Must be unique.       |
-| CreatedAt | TIMESTAMP WITH TIME ZONE | No       | Date and time when the brand was created. |
-| UpdatedAt | TIMESTAMP WITH TIME ZONE | No       | Date and time of the last update.         |
+| Id        | UNIQUEIDENTIFIER                     | No       | Primary key.                              |
+| Name      | NVARCHAR(100)             | No       | Vehicle brand name. Must be unique.       |
+| CreatedAt | DATETIME2 | No       | Date and time when the brand was created. |
+| UpdatedAt | DATETIME2 | No       | Date and time of the last update.         |
 
 ---
 
@@ -397,16 +410,16 @@ It defines the production year range of the model and provides the source vehicl
 
 ## Columns
 
-| Column         | PostgreSQL Type          | Nullable | Description                                                    |
+| Column         | SQL Server Type          | Nullable | Description                                                    |
 | -------------- | ------------------------ | -------- | -------------------------------------------------------------- |
-| Id             | UUID                     | No       | Primary key.                                                   |
-| VehicleBrandId | UUID                     | No       | References the vehicle brand.                                  |
-| Name           | VARCHAR(100)             | No       | Vehicle model name (e.g., Megane, Astra, Focus).               |
+| Id             | UNIQUEIDENTIFIER                     | No       | Primary key.                                                   |
+| VehicleBrandId | UNIQUEIDENTIFIER                     | No       | References the vehicle brand.                                  |
+| Name           | NVARCHAR(100)             | No       | Vehicle model name (e.g., Megane, Astra, Focus).               |
 | StartYear      | SMALLINT                 | No       | First production year of the model.                            |
 | EndYear        | SMALLINT                 | No       | Last production year of the model.                             |
-| Variant        | VARCHAR(100)             | Yes      | Optional trim/package information (e.g., GT Line, Touch, Joy). |
-| CreatedAt      | TIMESTAMP WITH TIME ZONE | No       | Date and time when the model was created.                      |
-| UpdatedAt      | TIMESTAMP WITH TIME ZONE | No       | Date and time of the last update.                              |
+| Variant        | NVARCHAR(100)             | Yes      | Optional trim/package information (e.g., GT Line, Touch, Joy). |
+| CreatedAt      | DATETIME2 | No       | Date and time when the model was created.                      |
+| UpdatedAt      | DATETIME2 | No       | Date and time of the last update.                              |
 
 ---
 
@@ -477,12 +490,12 @@ It allows a single spare part to be associated with multiple compatible vehicle 
 
 ## Columns
 
-| Column         | PostgreSQL Type          | Nullable | Description                                              |
+| Column         | SQL Server Type          | Nullable | Description                                              |
 | -------------- | ------------------------ | -------- | -------------------------------------------------------- |
-| Id             | UUID                     | No       | Primary key.                                             |
-| ProductId      | UUID                     | No       | References the compatible product.                       |
-| VehicleModelId | UUID                     | No       | References a compatible vehicle model.                   |
-| CreatedAt      | TIMESTAMP WITH TIME ZONE | No       | Date and time when the compatibility record was created. |
+| Id             | UNIQUEIDENTIFIER                     | No       | Primary key.                                             |
+| ProductId      | UNIQUEIDENTIFIER                     | No       | References the compatible product.                       |
+| VehicleModelId | UNIQUEIDENTIFIER                     | No       | References a compatible vehicle model.                   |
+| CreatedAt      | DATETIME2 | No       | Date and time when the compatibility record was created. |
 
 ---
 
@@ -553,13 +566,13 @@ It defines the display order of product images, where the first uploaded image i
 
 ## Columns
 
-| Column       | PostgreSQL Type          | Nullable | Description                                    |
+| Column       | SQL Server Type          | Nullable | Description                                    |
 | ------------ | ------------------------ | -------- | ---------------------------------------------- |
-| Id           | UUID                     | No       | Primary key.                                   |
-| ProductId    | UUID                     | No       | References the associated Product.             |
-| ImageUrl     | VARCHAR(500)             | No       | Relative or absolute path of the stored image. |
+| Id           | UNIQUEIDENTIFIER                     | No       | Primary key.                                   |
+| ProductId    | UNIQUEIDENTIFIER                     | No       | References the associated Product.             |
+| ImageUrl     | NVARCHAR(500)             | No       | Relative or absolute path of the stored image. |
 | DisplayOrder | SMALLINT                 | No       | Determines the display order of the image.     |
-| CreatedAt    | TIMESTAMP WITH TIME ZONE | No       | Date and time when the image was uploaded.     |
+| CreatedAt    | DATETIME2 | No       | Date and time when the image was uploaded.     |
 
 ---
 
@@ -627,12 +640,12 @@ Each favorite record represents a relationship between one ApplicationUser and o
 
 ## Columns
 
-| Column            | PostgreSQL Type          | Nullable | Description                                            |
+| Column            | SQL Server Type          | Nullable | Description                                            |
 | ----------------- | ------------------------ | -------- | ------------------------------------------------------ |
-| Id                | UUID                     | No       | Primary key.                                           |
-| ApplicationUserId | UUID                     | No       | References the user who favorited the product.         |
-| ProductId         | UUID                     | No       | References the favorited product.                      |
-| CreatedAt         | TIMESTAMP WITH TIME ZONE | No       | Date and time when the product was added to favorites. |
+| Id                | UNIQUEIDENTIFIER                     | No       | Primary key.                                           |
+| ApplicationUserId | UNIQUEIDENTIFIER                     | No       | References the user who favorited the product.         |
+| ProductId         | UNIQUEIDENTIFIER                     | No       | References the favorited product.                      |
+| CreatedAt         | DATETIME2 | No       | Date and time when the product was added to favorites. |
 
 ---
 
@@ -705,13 +718,13 @@ Authorization is handled through ASP.NET Core Identity Roles rather than separat
 
 ## Columns
 
-| Column    | PostgreSQL Type          | Nullable | Description            |
+| Column    | SQL Server Type          | Nullable | Description            |
 | --------- | ------------------------ | -------- | ---------------------- |
-| Id        | UUID                     | No       | Primary key.           |
-| FirstName | VARCHAR(100)             | No       | User first name.       |
-| LastName  | VARCHAR(100)             | No       | User last name.        |
-| CreatedAt | TIMESTAMP WITH TIME ZONE | No       | Account creation date. |
-| UpdatedAt | TIMESTAMP WITH TIME ZONE | No       | Last profile update.   |
+| Id        | UNIQUEIDENTIFIER                     | No       | Primary key.           |
+| FirstName | NVARCHAR(100)             | No       | User first name.       |
+| LastName  | NVARCHAR(100)             | No       | User last name.        |
+| CreatedAt | DATETIME2 | No       | Account creation date. |
+| UpdatedAt | DATETIME2 | No       | Last profile update.   |
 
 ---
 
@@ -782,13 +795,13 @@ It manages the complete lifecycle of a purchase request, including price negotia
 
 ## Columns
 
-| Column            | PostgreSQL Type          | Nullable | Description                                               |
+| Column            | SQL Server Type          | Nullable | Description                                               |
 | ----------------- | ------------------------ | -------- | --------------------------------------------------------- |
-| Id                | UUID                     | No       | Primary key.                                              |
-| ApplicationUserId | UUID                     | No       | References the customer who created the purchase request. |
-| Status            | INTEGER                  | No       | Current purchase request status (Enum).                   |
-| CreatedAt         | TIMESTAMP WITH TIME ZONE | No       | Date and time when the purchase request was created.      |
-| UpdatedAt         | TIMESTAMP WITH TIME ZONE | No       | Date and time of the last update.                         |
+| Id                | UNIQUEIDENTIFIER                     | No       | Primary key.                                              |
+| ApplicationUserId | UNIQUEIDENTIFIER                     | No       | References the customer who created the purchase request. |
+| Status            | INT                  | No       | Current purchase request status (Enum).                   |
+| CreatedAt         | DATETIME2 | No       | Date and time when the purchase request was created.      |
+| UpdatedAt         | DATETIME2 | No       | Date and time of the last update.                         |
 
 ---
 
@@ -858,12 +871,12 @@ It stores the product price at the time of the request and any negotiated price 
 
 ## Columns
 
-| Column            | PostgreSQL Type | Nullable | Description                                          |
+| Column            | SQL Server Type | Nullable | Description                                          |
 | ----------------- | --------------- | -------- | ---------------------------------------------------- |
-| Id                | UUID            | No       | Primary key.                                         |
-| PurchaseRequestId | UUID            | No       | References the associated PurchaseRequest.           |
-| ProductId         | UUID            | No       | References the requested Product.                    |
-| PriceSnapshot     | DECIMAL(10,2)   | Yes      | Product price when the purchase request was created. |
+| Id                | UNIQUEIDENTIFIER            | No       | Primary key.                                         |
+| PurchaseRequestId | UNIQUEIDENTIFIER            | No       | References the associated PurchaseRequest.           |
+| ProductId         | UNIQUEIDENTIFIER            | No       | References the requested Product.                    |
+| OriginalPrice     | DECIMAL(10,2)   | Yes      | Product price when the purchase request was created. |
 | NegotiatedPrice   | DECIMAL(10,2)   | Yes      | Final negotiated price for this product.             |
 
 ---
@@ -916,7 +929,7 @@ It stores the product price at the time of the request and any negotiated price 
 
 * Every PurchaseRequestItem references exactly one Product.
 * A PurchaseRequest must contain at least one PurchaseRequestItem.
-* PriceSnapshot stores the product price when the purchase request is created.
+* OriginalPrice stores the product price when the purchase request is created.
 * NegotiatedPrice is optional and is entered by the administrator after a successful phone negotiation.
 * Updating NegotiatedPrice never changes the Product price.
 * Final payable amounts are calculated from PurchaseRequestItems and are not stored in the PurchaseRequest entity.
@@ -978,4 +991,3 @@ Future versions may introduce:
 # 11. Approval
 
 This document represents the initial logical database design for OtoParcam and may evolve as new system requirements are introduced.
-

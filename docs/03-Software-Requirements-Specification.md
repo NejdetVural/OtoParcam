@@ -119,7 +119,7 @@ Frontend
 
 Database
 
-- PostgreSQL
+- Microsoft SQL Server
 
 Architecture
 
@@ -346,7 +346,7 @@ The system shall store the source vehicle model from which the spare part was re
 
 ## FR-21 Product Price Display
 
-The system shall display "Fiyat Ýçin Arayýn" when no product price is specified.
+The system shall display "Fiyat ??in Aray?n" when no product price is specified.
 
 Related Business Requirements
 
@@ -489,7 +489,7 @@ Frontend
 
 Database
 
-- PostgreSQL
+- Microsoft SQL Server
 
 Authentication
 

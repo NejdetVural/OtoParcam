@@ -109,7 +109,7 @@ The first version of OtoParcam will include the following modules.
 
 - ASP.NET Core Web API
 - Entity Framework Core
-- PostgreSQL
+- Microsoft SQL Server
 
 ## Frontend
 
