@@ -406,10 +406,10 @@ ApplicationUser -----------< PurchaseRequest
                     *
 
 
-## Open Questions
+## Resolved Questions
 
-- Should email verification be required before login?
-- Should ASP.NET Identity be used as the authentication system?
+- Email verification is required before login (BR-68; enforced via the `Confirm Email` endpoint in the API spec).
+- ASP.NET Core Identity is used as the authentication system (see Global Design Decisions below).
 
 ---
 
@@ -477,7 +477,7 @@ Product (1)
 
 ✔ Administrators record the negotiated price after a successful negotiation.
 
-✔ If the negotiated price is updated, the PurchaseRequest status becomes WaitingForCustomer.
+✔ If the negotiated price is updated, the PurchaseRequest status becomes WaitingForCustomerConfirmation.
 
 ✔ Customers confirm that the negotiated price entered into the system matches the agreed price.
 

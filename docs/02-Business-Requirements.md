@@ -98,15 +98,15 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-03** Every product must have a unique id.
 
-**BR-04** A product price is optional if its null than UI displays "Fiyat için arayýn".
+**BR-04** A product price is optional if its null than UI displays "Fiyat iï¿½in arayï¿½n".
 
-**BR-05** Stock status cannot be null
+**BR-05** Product status shall never be null; it defaults to **Available** and must be one of **Available**, **Sold**, or **Hidden**.
 
 **BR-06** A product may be compatible with multiple vehicle models.
 
 **BR-07** Compatibility information must be specified before a product becomes available.
 
-**BR-08** Products with null stock status are automatically marked as **Out of Stock**.
+**BR-08** Hiding a product (status **Hidden**) is non-destructive; the underlying product record is retained and only excluded from public listings.
 
 **BR-38** If no price is specified, the system shall display "Contact for Price".
 
@@ -229,6 +229,16 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-35** A purchase request shall have one of the following statuses:
 
+- Pending
+- WaitingForCustomerConfirmation
+- Approved
+- Rejected
+- Cancelled
+
+**BR-36** Product stock shall be changed only after the purchase request reaches the **Approved** status.
+
+---
+
 5.7 ### Product Compatibility Rules
 
 **BR-53** A product may be compatible with multiple vehicle models.
@@ -244,15 +254,6 @@ The following business rules define the business logic and constraints of the Ot
 **BR-58** Engine type, fuel type, transmission, package and other technical differences shall not be stored as compatibility criteria.
 
 **BR-59** Additional compatibility details may be provided in the product description or communicated outside the system.
-
-- Pending
-- WaitingForCustomer
-- Confirmed
-- Approved
-- Rejected
-- Cancelled
-
-**BR-36** Product stock shall be changed only after the purchase request reaches the **Approved** status.
 
 ---
 
