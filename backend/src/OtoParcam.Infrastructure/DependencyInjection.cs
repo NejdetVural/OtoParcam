@@ -5,9 +5,11 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
+using OtoParcam.Application.Auth;
 using OtoParcam.Domain.Constants;
 using OtoParcam.Domain.Entities;
 using OtoParcam.Infrastructure.Persistence;
+using OtoParcam.Infrastructure.Services;
 
 namespace OtoParcam.Infrastructure;
 
@@ -21,9 +23,14 @@ public static class DependencyInjection
             options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
 
         services
-            .AddIdentity<ApplicationUser, IdentityRole<Guid>>()
+            .AddIdentity<ApplicationUser, IdentityRole<Guid>>(options =>
+            {
+                options.User.RequireUniqueEmail = true;
+            })
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
+
+            services.AddScoped<IAuthService, AuthService>();
 
         var jwtSection = configuration.GetSection("Jwt");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Secret"]!));
