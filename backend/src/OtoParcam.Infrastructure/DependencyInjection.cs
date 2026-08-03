@@ -6,6 +6,14 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using OtoParcam.Application.Auth;
+using OtoParcam.Application.Categories;
+using OtoParcam.Application.Dashboard;
+using OtoParcam.Application.Favorites;
+using OtoParcam.Application.PurchaseRequests;
+using OtoParcam.Application.Users;
+using OtoParcam.Application.VehicleBrands;
+using OtoParcam.Application.Products;
+using OtoParcam.Application.VehicleModels;
 using OtoParcam.Domain.Constants;
 using OtoParcam.Domain.Entities;
 using OtoParcam.Infrastructure.Persistence;
@@ -31,6 +39,14 @@ public static class DependencyInjection
             .AddDefaultTokenProviders();
 
             services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<ICategoryService, CategoryService>();
+            services.AddScoped<IVehicleBrandService, VehicleBrandService>();
+            services.AddScoped<IVehicleModelService, VehicleModelService>();
+            services.AddScoped<IProductService, ProductService>();
+            services.AddScoped<IFavoriteService, FavoriteService>();
+            services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
+            services.AddScoped<IUserProfileService, UserProfileService>();
+            services.AddScoped<IDashboardService, DashboardService>();
 
         var jwtSection = configuration.GetSection("Jwt");
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtSection["Secret"]!));

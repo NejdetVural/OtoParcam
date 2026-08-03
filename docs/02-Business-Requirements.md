@@ -77,10 +77,10 @@ The system supports two primary workflows.
 4. Customer may contact the store by phone for price negotiation.
 5. Customer submits a purchase request.
 6. Administrator reviews the purchase request.
-7. If a negotiated price is agreed by phone, the administrator updates the purchase request.
+7. If a negotiated price is agreed by phone, the administrator updates the purchase request with the negotiated price.
 8. The purchase request status becomes **Waiting for Customer Confirmation**.
-9. Customer reviews and confirms the updated purchase request.
-10. Administrator approves or rejects the purchase request.
+9. Customer reviews the (possibly updated) purchase request and either confirms or rejects it.
+10. Confirming sets the purchase request status to **Approved**; rejecting sets it to **Rejected**.
 11. If approved, product stock is updated.
 12. Customer is informed about the final status.
 
@@ -207,7 +207,7 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-25** Only administrators can update inventory quantities.
 
-**BR-26** Only administrators can approve or reject purchase requests.
+**BR-26** Only the customer who submitted a purchase request can confirm (approve) or reject it; administrators may only update its negotiated pricing.
 
 **BR-27** Every inventory update shall be recorded in the system.
 
@@ -221,7 +221,7 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-31** Updating a purchase request shall not modify the original product price.
 
-**BR-32** An updated purchase request shall require customer confirmation before administrator approval.
+**BR-32** An updated (negotiated) purchase request shall require customer confirmation before it can reach **Approved** status.
 
 **BR-33** Each purchase request shall store both the original product price and the negotiated price.
 
