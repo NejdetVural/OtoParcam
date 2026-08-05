@@ -117,6 +117,8 @@ public class ProductService : IProductService
             SourceVehicleModelId = request.SourceVehicleModelId,
             Price = request.Price,
             Color = request.Color,
+            Side = request.Side,
+            Position = request.Position,
             Description = request.Description,
             Status = ProductStatus.Available
         };
@@ -161,6 +163,8 @@ public class ProductService : IProductService
         product.SourceVehicleModelId = request.SourceVehicleModelId;
         product.Price = request.Price;
         product.Color = request.Color;
+        product.Side = request.Side;
+        product.Position = request.Position;
         product.Description = request.Description;
 
         await _dbContext.SaveChangesAsync(cancellationToken);
@@ -361,6 +365,8 @@ public class ProductService : IProductService
         Price = product.Price,
         Color = product.Color,
         Status = product.Status,
+        Side = product.Side,
+        Position = product.Position,
         Description = product.Description,
         Images = product.ProductImages
             .OrderBy(i => i.DisplayOrder)

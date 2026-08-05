@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using OtoParcam.API.Services;
 using OtoParcam.Application.Products;
 using OtoParcam.Domain.Constants;
 
@@ -10,10 +11,12 @@ namespace OtoParcam.API.Controllers;
 public class ProductsController : ControllerBase
 {
     private readonly IProductService _productService;
+    private readonly IProductImageFileStorage _imageStorage;
 
-    public ProductsController(IProductService productService)
+    public ProductsController(IProductService productService, IProductImageFileStorage imageStorage)
     {
         _productService = productService;
+        _imageStorage = imageStorage;
     }
 
     [HttpGet]
@@ -76,9 +79,31 @@ public class ProductsController : ControllerBase
 
     [HttpPost("{id:guid}/images")]
     [Authorize(Roles = Roles.Administrator)]
-    public async Task<IActionResult> AddProductImage(Guid id, UploadProductImageRequest request, CancellationToken cancellationToken)
+    [RequestSizeLimit(5 * 1024 * 1024)]
+    public async Task<IActionResult> AddProductImage(Guid id, IFormFile file, CancellationToken cancellationToken)
     {
-        var result = await _productService.AddProductImageAsync(id, request, cancellationToken);
+        if (file is null || file.Length == 0)
+        {
+            return BadRequest(new { error = "An image file is required." });
+        }
+
+        string relativeUrl;
+        try
+        {
+            relativeUrl = await _imageStorage.SaveAsync(id, file, cancellationToken);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+
+        var result = await _productService.AddProductImageAsync(id, new UploadProductImageRequest { ImageUrl = relativeUrl }, cancellationToken);
+
+        if (result.Status != ProductImageOperationStatus.Success)
+        {
+            _imageStorage.Delete(relativeUrl);
+        }
+
         return result.Status switch
         {
             ProductImageOperationStatus.Success => StatusCode(StatusCodes.Status201Created, result.Image),
@@ -92,7 +117,16 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = Roles.Administrator)]
     public async Task<IActionResult> DeleteProductImage(Guid id, Guid imageId, CancellationToken cancellationToken)
     {
+        var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+        var imageUrl = product?.Images.FirstOrDefault(i => i.Id == imageId)?.ImageUrl;
+
         var result = await _productService.DeleteProductImageAsync(id, imageId, cancellationToken);
+
+        if (result.Status == ProductImageOperationStatus.Success && imageUrl is not null)
+        {
+            _imageStorage.Delete(imageUrl);
+        }
+
         return result.Status switch
         {
             ProductImageOperationStatus.Success => NoContent(),

@@ -40,6 +40,11 @@ public class PurchaseRequestsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreatePurchaseRequest(CreatePurchaseRequestRequest request, CancellationToken cancellationToken)
     {
+        if (User.IsInRole(Roles.Administrator))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Administrator accounts cannot create purchase requests." });
+        }
+
         var result = await _purchaseRequestService.CreatePurchaseRequestAsync(GetUserId(), request, cancellationToken);
         return result.Status switch
         {

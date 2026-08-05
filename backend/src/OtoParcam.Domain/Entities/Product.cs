@@ -10,6 +10,8 @@ public class Product : BaseEntity
     public decimal? Price { get; set; }
     public ProductColor Color { get; set; }
     public ProductStatus Status { get; set; } = ProductStatus.Available;
+    public ProductSide? Side { get; set; }
+    public ProductPosition? Position { get; set; }
     public string? Description { get; set; }
 
     // Navigation properties

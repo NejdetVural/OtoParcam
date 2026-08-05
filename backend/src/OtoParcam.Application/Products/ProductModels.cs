@@ -19,6 +19,8 @@ public class ProductDto
     public decimal? Price { get; set; }
     public ProductColor Color { get; set; }
     public ProductStatus Status { get; set; }
+    public ProductSide? Side { get; set; }
+    public ProductPosition? Position { get; set; }
     public string? Description { get; set; }
     public IReadOnlyList<ProductImageDto> Images { get; set; } = Array.Empty<ProductImageDto>();
 }
@@ -69,6 +71,10 @@ public class CreateProductRequest
     [Required]
     public ProductColor Color { get; set; }
 
+    public ProductSide? Side { get; set; }
+
+    public ProductPosition? Position { get; set; }
+
     [MaxLength(2000)]
     public string? Description { get; set; }
 }
@@ -85,6 +91,10 @@ public class UpdateProductRequest
 
     [Required]
     public ProductColor Color { get; set; }
+
+    public ProductSide? Side { get; set; }
+
+    public ProductPosition? Position { get; set; }
 
     [MaxLength(2000)]
     public string? Description { get; set; }

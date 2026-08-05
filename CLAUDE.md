@@ -77,7 +77,7 @@ Purchase request status flow (`PurchaseRequestStatus` enum) drives the core orde
 
 `docs/` contains the full spec set and should be treated as living requirements documentation, kept consistent with the code:
 - `01-Project-Vision.md`, `02-Business-Requirements.md` (numbered `BR-*` business rules), `03-Software-Requirements-Specification.md`, `04-Use-Case-Specification.md`, `05-Database-Design.md`, `06-Api-Design-Specification.md`, `07-ERdiagram.drawio`.
-- `docs/Notes/EntityProcess.md` is a working-notes log of per-entity design decisions and progress — check it for context/rationale not repeated in the numbered specs (e.g. it records that `Product.Side`/`Position` were decided as nullable fields but not yet implemented in the entity or DB design doc).
+- `docs/Notes/EntityProcess.md` is a working-notes log of per-entity design decisions and progress — check it for context/rationale not repeated in the numbered specs. It anticipated `Product.Side`/`Position` as nullable fields before they were implemented (2026-08-05); both now exist as nullable `ProductSide`/`ProductPosition` enums on `Product`, left null for categories where the attribute doesn't apply (e.g. Hood has neither, Door has both) — this is an admin judgment call per product, not schema-enforced per category.
 - `docs/Notes/ DECISION_LOG.md` is a lightweight ADR log (DECISION-001 through DECISION-006) — read it for the *why* behind schema choices that might otherwise look like gaps (no stock quantity, nullable price, no condition column, manual compatibility selection, source-vehicle semantics, SQL Server over PostgreSQL).
 
 Known gaps between docs and current code/decisions, worth checking before trusting either as ground truth:

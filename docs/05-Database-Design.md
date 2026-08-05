@@ -187,6 +187,8 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | Price                | DECIMAL(10,2)            | Yes      | Product selling price. If NULL, the UI displays **"Fiyat İçin Arayın"**. |
 | Status          | INT                  | No       | Product availability status (Enum).                                      |
 | Color                | INT                  | No       | Product color (Enum).                                                    |
+| Side                 | INT                  | Yes      | Which side of the vehicle the part is from (Enum: Left, Right). Null when the category has no side (e.g. Hood). |
+| Position             | INT                  | Yes      | Which end of the vehicle the part is from (Enum: Front, Rear). Null when the category has no position (e.g. Hood). |
 | Description          | NVARCHAR(MAX)                     | Yes      | Stores scratches, dents, missing parts and other physical details.       |
 | CreatedAt            | DATETIME2 | No       | Date and time when the product was created.                              |
 | UpdatedAt            | DATETIME2 | No       | Date and time of the last update.                                        |
@@ -253,6 +255,7 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 * Only original used spare parts are supported in Version 1.0.
 * Product condition is described only in the Description field.
 * Color is stored as an enumeration.
+* Side and Position are stored as nullable enumerations; whether they apply is a per-category judgment made by the administrator when creating the product, not enforced by the schema (e.g. a Door product sets both, a Hood product leaves both null).
 * The first uploaded image is automatically used as the cover image.
 * Product images are displayed in their upload order.
 * Business rules such as dynamic product name generation and image ordering are enforced by the application layer.
@@ -325,7 +328,7 @@ None.
 * Categories are displayed alphabetically.
 * Categories cannot be deleted while referenced by one or more Products.
 * Category descriptions are not supported in Version 1.0.
-* Product position (Left, Right, Front, Rear, etc.) is intentionally excluded from Category because it depends on the specific spare part and will be handled separately in future versions.
+* Product side/position (Left, Right, Front, Rear) is intentionally excluded from Category because it depends on the specific spare part — it is stored as nullable `Side`/`Position` columns directly on Product instead (see §6.1), left null for categories (e.g. Hood) where the attribute does not apply.
 
 ---
 

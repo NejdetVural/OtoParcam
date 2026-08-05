@@ -28,6 +28,12 @@ public class AuthService : IAuthService
 
     public async Task<RegisterResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        var phoneTaken = await _userManager.Users.AnyAsync(u => u.PhoneNumber == request.PhoneNumber, cancellationToken);
+        if (phoneTaken)
+        {
+            return RegisterResult.Failure(new[] { "Phone number is already taken." });
+        }
+
         var user = new ApplicationUser
         {
             UserName = request.Email,

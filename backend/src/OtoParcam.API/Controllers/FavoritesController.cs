@@ -28,6 +28,11 @@ public class FavoritesController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> AddFavorite(AddFavoriteRequest request, CancellationToken cancellationToken)
     {
+        if (User.IsInRole(Roles.Administrator))
+        {
+            return StatusCode(StatusCodes.Status403Forbidden, new { error = "Administrator accounts cannot add favorites." });
+        }
+
         var result = await _favoriteService.AddFavoriteAsync(GetUserId(), request, cancellationToken);
         return result.Status switch
         {

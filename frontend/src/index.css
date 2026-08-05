@@ -1,0 +1,28 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #eef4fb;
+  --color-brand-100: #d9e6f5;
+  --color-brand-200: #b3cce9;
+  --color-brand-300: #82abd7;
+  --color-brand-400: #4f80b8;
+  --color-brand-500: #2f5f96;
+  --color-brand-600: #204a79;
+  --color-brand-700: #1a3c63;
+  --color-brand-800: #142f4e;
+  --color-brand-900: #0f2338;
+  --color-brand-950: #0a1726;
+}
+
+body {
+  font-feature-settings: "cv11", "ss01";
+}
+
+.page-texture {
+  background-color: #f2f4f6;
+  background-image:
+    radial-gradient(circle at 8% 0%, rgba(20, 48, 79, 0.07), transparent 55%),
+    radial-gradient(circle at 100% 30%, rgba(20, 48, 79, 0.05), transparent 50%),
+    repeating-linear-gradient(135deg, rgba(15, 35, 56, 0.035) 0 1px, transparent 1px 15px);
+  background-attachment: fixed;
+}

@@ -1,13 +1,28 @@
 using Microsoft.OpenApi.Models;
+using OtoParcam.API.Services;
 using OtoParcam.Infrastructure;
 using OtoParcam.Infrastructure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
+const string FrontendCorsPolicy = "FrontendDev";
+
+// Must exist before builder.Build() — the static file middleware resolves WebRootFileProvider at host-build time.
+Directory.CreateDirectory(Path.Combine(builder.Environment.ContentRootPath, "wwwroot", "uploads", "products"));
+
 // Add services to the container.
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 builder.Services.AddOpenApi();
 builder.Services.AddControllers();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        policy.WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
@@ -35,6 +50,7 @@ builder.Services.AddSwaggerGen(options =>
 });
 
 builder.Services.AddInfrastructureServices(builder.Configuration);
+builder.Services.AddSingleton<IProductImageFileStorage, LocalProductImageFileStorage>();
 
 var app = builder.Build();
 
@@ -55,6 +71,10 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.UseHttpsRedirection();
+
+app.UseStaticFiles();
+
+app.UseCors(FrontendCorsPolicy);
 
 app.UseAuthentication();
 app.UseAuthorization();
