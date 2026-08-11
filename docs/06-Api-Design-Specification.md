@@ -2,7 +2,7 @@
 
 ## API Design Specification
 
-Version 1.8
+Version 1.9
 
 Author Nejdet Vural
 
@@ -12,6 +12,9 @@ Date 17.07.2026
 
 ## Changelog
 
+- **Added rate limiting on `AuthController`** (`/auth/register`, `/auth/login`, `/auth/confirm-email`): 10 requests/minute
+  per client IP, `429 Too Many Requests` beyond that. Defensive hardening after a security review — slows down
+  credential-stuffing/brute-force attempts. Scoped to auth only, not applied globally. Added 2026-08-11.
 - **Added `?period=` to `GET /admin/reports/statistics`** (`AllTime` (default) | `Daily` | `Weekly` | `Monthly`) — scopes
   the Sales Performance section (and its revenue/cost/profit totals) to a rolling window ending now, based on the new
   `Product.SoldAt` timestamp (set independently of `UpdatedAt`, alongside `SoldPrice`, on both sale paths — approving a
@@ -779,6 +782,7 @@ Authentication Required
 | 403 Forbidden | Access denied |
 | 404 Not Found | Resource not found |
 | 409 Conflict | Duplicate resource |
+| 429 Too Many Requests | Rate limit exceeded — currently only on `/auth/register`, `/auth/login`, `/auth/confirm-email` (10 requests/minute per client IP), added 2026-08-11 |
 | 500 Internal Server Error | Unexpected server error |
 
 ---

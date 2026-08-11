@@ -5,11 +5,12 @@ import { useAuth } from "../../auth/AuthContext";
 import { Roles } from "../../auth/roles";
 import { getAllPurchaseRequests } from "../../api/adminPurchaseRequests";
 import { getPurchaseRequests, PurchaseRequestStatus } from "../../api/purchaseRequests";
-import { Button } from "../ui/Button";
 import { NotificationBubble } from "../ui/NotificationBubble";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
-  `text-sm font-medium transition-colors ${isActive ? "text-white" : "text-slate-400 hover:text-white"}`;
+  `rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+    isActive ? "bg-white/10 text-white" : "text-slate-400 hover:bg-white/5 hover:text-white"
+  }`;
 
 const mobileNavLinkClass = ({ isActive }: { isActive: boolean }) =>
   `block rounded-lg px-3 py-2 text-sm font-medium transition-colors ${
@@ -77,13 +78,23 @@ export function Header() {
   };
 
   return (
-    <header className="border-b border-brand-800 bg-brand-950">
+    <header className="sticky top-0 z-40 border-b border-white/[0.06] bg-brand-950/90 backdrop-blur-md">
       <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8 2xl:px-12">
-        <Link to="/" className="text-lg font-semibold tracking-tight text-white">
+        <Link to="/" className="flex items-center gap-2.5 text-lg font-semibold tracking-tight text-white">
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/10">
+            <svg viewBox="0 0 24 24" className="h-4 w-4 text-brand-200" fill="none" stroke="currentColor" strokeWidth={1.8}>
+              <circle cx="12" cy="12" r="7.5" />
+              <circle cx="12" cy="12" r="2" fill="currentColor" stroke="none" />
+              <path
+                strokeLinecap="round"
+                d="M12 3.5v3M12 17.5v3M3.5 12h3M17.5 12h3M6.3 6.3l2.1 2.1M15.6 15.6l2.1 2.1M6.3 17.7l2.1-2.1M15.6 8.4l2.1-2.1"
+              />
+            </svg>
+          </span>
           OtoParcam
         </Link>
 
-        <nav className="hidden items-center gap-6 sm:flex">
+        <nav className="hidden items-center gap-3 sm:flex">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
               <span className="inline-flex items-center gap-1.5">
@@ -96,9 +107,13 @@ export function Header() {
 
         <div className="flex items-center gap-3">
           {isAuthenticated ? (
-            <Button variant="secondary" onClick={logout}>
+            <button
+              type="button"
+              onClick={logout}
+              className="inline-flex items-center justify-center rounded-lg border border-white/15 px-4 py-2 text-sm font-medium text-slate-200 transition-colors hover:border-white/30 hover:text-white"
+            >
               Çıkış Yap
-            </Button>
+            </button>
           ) : (
             <>
               <Link to="/giris" className="text-sm font-medium text-slate-300 hover:text-white">

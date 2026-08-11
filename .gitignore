@@ -61,6 +61,13 @@ bld/
 # Locally-uploaded product images (dev-only file storage, not source-controlled)
 backend/src/OtoParcam.API/wwwroot/uploads/
 
+# Real secrets belong in `dotnet user-secrets` (dev) or environment variables (prod), never a committed
+# appsettings file. appsettings.json/appsettings.Development.json stay tracked but must never carry real
+# values (see appsettings.Development.json's Jwt section, deliberately left without a Secret key).
+appsettings.Production.json
+appsettings.*.local.json
+**/secrets.json
+
 # Visual Studio 2017 auto generated files
 Generated\ Files/
 
