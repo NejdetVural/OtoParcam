@@ -34,12 +34,16 @@ public class DashboardService : IDashboardService
                 && (!p.ProductImages.Any() || !p.Compatibilities.Any()))
             .CountAsync(cancellationToken);
 
+        var acquisitionBatchesInProgress = await _dbContext.AcquisitionBatches
+            .CountAsync(b => b.Products.Any(p => p.Status == ProductStatus.Available), cancellationToken);
+
         return new DashboardStatsDto
         {
             TotalProducts = totalProducts,
             TotalCustomers = totalCustomers,
             PendingPurchaseRequests = pendingPurchaseRequests,
-            ProductsAwaitingAttention = productsAwaitingAttention
+            ProductsAwaitingAttention = productsAwaitingAttention,
+            AcquisitionBatchesInProgress = acquisitionBatchesInProgress
         };
     }
 }

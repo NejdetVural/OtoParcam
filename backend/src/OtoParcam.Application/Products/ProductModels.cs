@@ -17,6 +17,13 @@ public class ProductDto
     public short EndYear { get; set; }
     public string? Variant { get; set; }
     public decimal? Price { get; set; }
+    public decimal? SoldPrice { get; set; }
+    public decimal? AcquisitionCost { get; set; }
+    public string? AcquisitionSource { get; set; }
+    public Guid? AcquisitionBatchId { get; set; }
+    public string? AcquisitionBatchSource { get; set; }
+    public decimal? EffectiveAcquisitionCost { get; set; }
+    public string? EffectiveAcquisitionSource { get; set; }
     public ProductColor Color { get; set; }
     public ProductStatus Status { get; set; }
     public ProductSide? Side { get; set; }
@@ -45,6 +52,7 @@ public class ProductListQuery
     public Guid? VehicleModelId { get; set; }
     public string? Keyword { get; set; }
     public ProductColor? Color { get; set; }
+    public ProductStatus? Status { get; set; }
     public int Page { get; set; } = 1;
     public string? SortBy { get; set; }
 }
@@ -68,6 +76,13 @@ public class CreateProductRequest
 
     public decimal? Price { get; set; }
 
+    public decimal? AcquisitionCost { get; set; }
+
+    [MaxLength(500)]
+    public string? AcquisitionSource { get; set; }
+
+    public Guid? AcquisitionBatchId { get; set; }
+
     [Required]
     public ProductColor Color { get; set; }
 
@@ -77,6 +92,16 @@ public class CreateProductRequest
 
     [MaxLength(2000)]
     public string? Description { get; set; }
+
+    // Only Available or Hidden accepted at creation — Sold is reachable only via an approved purchase request or the
+    // admin-only "mark as sold" action (MarkProductSoldAsync). Defaults to Available (BR-05).
+    public ProductStatus? Status { get; set; }
+}
+
+public class MarkProductSoldRequest
+{
+    [Required]
+    public decimal SoldPrice { get; set; }
 }
 
 public class UpdateProductRequest
@@ -88,6 +113,13 @@ public class UpdateProductRequest
     public Guid SourceVehicleModelId { get; set; }
 
     public decimal? Price { get; set; }
+
+    public decimal? AcquisitionCost { get; set; }
+
+    [MaxLength(500)]
+    public string? AcquisitionSource { get; set; }
+
+    public Guid? AcquisitionBatchId { get; set; }
 
     [Required]
     public ProductColor Color { get; set; }
@@ -106,7 +138,9 @@ public enum ProductOperationStatus
     NotFound,
     InvalidCategory,
     InvalidVehicleModel,
-    InvalidPrice
+    InvalidPrice,
+    InvalidStatus,
+    InvalidAcquisitionBatch
 }
 
 public class ProductResult
@@ -118,16 +152,20 @@ public class ProductResult
     public static ProductResult Success(ProductDto product) => new() { Status = ProductOperationStatus.Success, Product = product };
     public static ProductResult NotFound() => new() { Status = ProductOperationStatus.NotFound };
     public static ProductResult InvalidCategory(string error) => new() { Status = ProductOperationStatus.InvalidCategory, Error = error };
+    public static ProductResult InvalidStatus(string error) => new() { Status = ProductOperationStatus.InvalidStatus, Error = error };
     public static ProductResult InvalidVehicleModel(string error) => new() { Status = ProductOperationStatus.InvalidVehicleModel, Error = error };
     public static ProductResult InvalidPrice(string error) => new() { Status = ProductOperationStatus.InvalidPrice, Error = error };
+    public static ProductResult InvalidAcquisitionBatch(string error) => new() { Status = ProductOperationStatus.InvalidAcquisitionBatch, Error = error };
 }
 
 public class ProductDeleteResult
 {
     public ProductOperationStatus Status { get; init; }
+    public string? Error { get; init; }
 
     public static ProductDeleteResult Success() => new() { Status = ProductOperationStatus.Success };
     public static ProductDeleteResult NotFound() => new() { Status = ProductOperationStatus.NotFound };
+    public static ProductDeleteResult InvalidStatus(string error) => new() { Status = ProductOperationStatus.InvalidStatus, Error = error };
 }
 
 public enum ProductImageOperationStatus

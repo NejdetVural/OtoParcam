@@ -50,6 +50,7 @@ public enum PurchaseRequestOperationStatus
     EmptyProductIds,
     ProductNotFound,
     ProductNotAvailable,
+    ProductAlreadyRequested,
     InvalidTransition,
     InvalidPrice
 }
@@ -70,6 +71,8 @@ public class PurchaseRequestResult
         new() { Status = PurchaseRequestOperationStatus.ProductNotFound, Error = error };
     public static PurchaseRequestResult ProductNotAvailable(string error) =>
         new() { Status = PurchaseRequestOperationStatus.ProductNotAvailable, Error = error };
+    public static PurchaseRequestResult ProductAlreadyRequested(string error) =>
+        new() { Status = PurchaseRequestOperationStatus.ProductAlreadyRequested, Error = error };
     public static PurchaseRequestResult InvalidTransition(string error) =>
         new() { Status = PurchaseRequestOperationStatus.InvalidTransition, Error = error };
     public static PurchaseRequestResult InvalidPrice(string error) =>

@@ -6,4 +6,5 @@ public class DashboardStatsDto
     public int TotalCustomers { get; set; }
     public int PendingPurchaseRequests { get; set; }
     public int ProductsAwaitingAttention { get; set; }
+    public int AcquisitionBatchesInProgress { get; set; }
 }

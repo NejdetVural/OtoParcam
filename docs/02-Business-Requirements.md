@@ -108,6 +108,10 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-08** Hiding a product (status **Hidden**) is non-destructive; the underlying product record is retained and only excluded from public listings.
 
+**BR-77** An administrator may create a product directly as **Hidden** instead of the default **Available** (BR-05), for parts kept only for internal inventory tracking and never intended for sale. **Sold** cannot be set at creation — it is only reachable afterward, via an approved purchase request (BR-36) or the administrator-only "mark as sold" action (BR-78).
+
+**BR-78** Since the system also functions as an inventory tracker and not every sale happens through the online purchase-request flow (e.g. an in-person or phone sale), an administrator may directly mark an Available or Hidden product as **Sold** with a sold price, without any purchase request. The product's sold price is a fact recorded on the product itself, regardless of whether the sale happened through an approved purchase request or this direct action, so sales reporting (BR-70/BR-71) reflects both consistently. A product already **Sold** cannot be marked sold again.
+
 **BR-38** If no price is specified, the system shall display "Contact for Price".
 
 **BR-39** Purchase requests may be created regardless of whether the product price is displayed.
@@ -197,6 +201,10 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-22** Every purchase request shall have exactly one status at any given time.
 
+**BR-75** A customer cannot create a new purchase request for a product they already have an active (**Pending** or **WaitingForCustomerConfirmation**) purchase request for. A prior request that reached **Cancelled**, **Rejected**, or **Approved** does not block a new one (though **Approved** also flips the product to **Sold**, which BR-14 already blocks separately).
+
+**BR-76** Since every Product is a unique physical item (no stock quantity — see DECISION-001), confirming a purchase request shall re-verify that every item's product is still **Available** at confirmation time, not only at request creation. If another purchase request already reached **Approved** for the same product in the meantime, the confirmation shall fail rather than silently succeed.
+
 ---
 
 5.5 ## Administration Rules
@@ -254,6 +262,24 @@ The following business rules define the business logic and constraints of the Ot
 **BR-58** Engine type, fuel type, transmission, package and other technical differences shall not be stored as compatibility criteria.
 
 **BR-59** Additional compatibility details may be provided in the product description or communicated outside the system.
+
+---
+
+5.8 ### Reporting Rules
+
+**BR-69** Each product's acquisition cost and acquisition source shall be recorded per product and shall never be exposed to Customer or public (unauthenticated) callers, regardless of the product's status.
+
+**BR-70** Administrators shall be able to generate an on-demand sales and inventory statistics report, without needing to persist or schedule it.
+
+**BR-79** When generating the statistics report, an administrator may scope the Satış Performansı (Sales Performance) section — and its revenue/cost/profit totals — to a rolling time window ending now: daily (last 24 hours), weekly (last 7 days), or monthly (last 30 days), based on `Product.SoldAt`. The default, when no period is chosen, remains the full unscoped history. Every other report section (general counts, inventory value, acquisition batch part counts) always reflects current state and is unaffected by the chosen period.
+
+**BR-71** The sold price used in sales reporting is `Product.SoldPrice`, set to the negotiated price (falling back to the original price) when a purchase request is approved, or to the administrator-entered price when marked sold directly (BR-78) — consistent with how the price is displayed elsewhere (BR-33/BR-34).
+
+**BR-72** Parts are frequently acquired together as a single lump-sum purchase (e.g. a whole insurance-total-loss vehicle) but are always sold individually; the system shall record such a purchase once as an Acquisition Batch (source, total cost, purchase date) and let any number of Products optionally link to it, without requiring or blocking individual per-product acquisition cost entry.
+
+**BR-73** A Product's acquisition cost, for reporting purposes, shall resolve to its own individually-entered `AcquisitionCost` when present; otherwise, if the Product is linked to an Acquisition Batch, it shall resolve to that batch's total cost divided evenly across every Product currently linked to the batch (regardless of their status).
+
+**BR-74** An Acquisition Batch cannot be deleted while one or more Products still reference it (consistent with the delete-blocking rule already applied to Category/VehicleBrand/VehicleModel — BR-42/46/52).
 
 ---
 

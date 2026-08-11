@@ -1,8 +1,12 @@
 import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Link, NavLink, useLocation } from "react-router-dom";
 import { useAuth } from "../../auth/AuthContext";
 import { Roles } from "../../auth/roles";
+import { getAllPurchaseRequests } from "../../api/adminPurchaseRequests";
+import { getPurchaseRequests, PurchaseRequestStatus } from "../../api/purchaseRequests";
 import { Button } from "../ui/Button";
+import { NotificationBubble } from "../ui/NotificationBubble";
 
 const navLinkClass = ({ isActive }: { isActive: boolean }) =>
   `text-sm font-medium transition-colors ${isActive ? "text-white" : "text-slate-400 hover:text-white"}`;
@@ -28,7 +32,7 @@ function getNavItems(isAuthenticated: boolean, isAdmin: boolean): NavItem[] {
   if (isAdmin) {
     items.push(
       { to: "/admin", label: "Yönetim", end: true },
-      { to: "/admin/urunler", label: "Ürünler" },
+      { to: "/admin/urunler", label: "Ürün Yönetimi" },
       { to: "/admin/talepler", label: "Talep Yönetimi" },
     );
   }
@@ -52,6 +56,26 @@ export function Header() {
 
   const navItems = getNavItems(isAuthenticated, isAdmin);
 
+  const customerRequestsQuery = useQuery({
+    queryKey: ["purchase-requests"],
+    queryFn: getPurchaseRequests,
+    enabled: isAuthenticated && !isAdmin,
+  });
+
+  const adminRequestsQuery = useQuery({
+    queryKey: ["admin-purchase-requests"],
+    queryFn: getAllPurchaseRequests,
+    enabled: isAdmin,
+  });
+
+  const badgeCounts: Record<string, number> = {
+    "/taleplerim":
+      customerRequestsQuery.data?.filter((r) => r.status === PurchaseRequestStatus.WaitingForCustomerConfirmation)
+        .length ?? 0,
+    "/admin/talepler":
+      adminRequestsQuery.data?.filter((r) => r.status === PurchaseRequestStatus.Pending).length ?? 0,
+  };
+
   return (
     <header className="border-b border-brand-800 bg-brand-950">
       <div className="flex h-16 w-full items-center justify-between px-4 sm:px-6 lg:px-8 2xl:px-12">
@@ -62,7 +86,10 @@ export function Header() {
         <nav className="hidden items-center gap-6 sm:flex">
           {navItems.map((item) => (
             <NavLink key={item.to} to={item.to} end={item.end} className={navLinkClass}>
-              {item.label}
+              <span className="inline-flex items-center gap-1.5">
+                {item.label}
+                <NotificationBubble count={badgeCounts[item.to] ?? 0} />
+              </span>
             </NavLink>
           ))}
         </nav>
@@ -111,7 +138,10 @@ export function Header() {
           <div className="flex flex-col gap-1">
             {navItems.map((item) => (
               <NavLink key={item.to} to={item.to} end={item.end} className={mobileNavLinkClass}>
-                {item.label}
+                <span className="flex items-center justify-between">
+                  {item.label}
+                  <NotificationBubble count={badgeCounts[item.to] ?? 0} />
+                </span>
               </NavLink>
             ))}
           </div>

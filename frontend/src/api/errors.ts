@@ -9,6 +9,8 @@ const TRANSLATION_RULES: [RegExp, string][] = [
   [/at least 6 characters/i, "Şifre en az 6 karakter olmalıdır."],
   [/invalid credentials/i, "E-posta/telefon veya şifre hatalı."],
   [/not confirmed/i, "E-posta adresiniz henüz onaylanmadı."],
+  [/already have an active purchase request/i, "Bu ürün için zaten aktif bir talebiniz var."],
+  [/no longer available.*another purchase request/i, "Bu üründe artık stok yok — başka bir talep tarafından alınmış olabilir."],
 ];
 
 function translate(message: string): string {

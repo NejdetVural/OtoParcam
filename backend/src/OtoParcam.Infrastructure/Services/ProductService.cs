@@ -17,10 +17,18 @@ public class ProductService : IProductService
         _dbContext = dbContext;
     }
 
-    public async Task<PagedResult<ProductDto>> GetProductsAsync(ProductListQuery query, CancellationToken cancellationToken = default)
+    public async Task<PagedResult<ProductDto>> GetProductsAsync(ProductListQuery query, bool isAdmin, CancellationToken cancellationToken = default)
     {
-        var products = _dbContext.Products
-            .Where(p => p.Status == ProductStatus.Available);
+        IQueryable<Product> products = _dbContext.Products;
+
+        if (!isAdmin)
+        {
+            products = products.Where(p => p.Status == ProductStatus.Available);
+        }
+        else if (query.Status.HasValue)
+        {
+            products = products.Where(p => p.Status == query.Status.Value);
+        }
 
         if (query.CategoryId.HasValue)
         {
@@ -67,11 +75,30 @@ public class ProductService : IProductService
             .Include(p => p.Category)
             .Include(p => p.SourceVehicleModel).ThenInclude(m => m.VehicleBrand)
             .Include(p => p.ProductImages)
+            .Include(p => p.AcquisitionBatch)
             .ToListAsync(cancellationToken);
+
+        var batchPartCounts = await GetBatchPartCountsAsync(
+            pageItems.Where(p => p.AcquisitionBatchId.HasValue).Select(p => p.AcquisitionBatchId!.Value),
+            cancellationToken);
+
+        var items = pageItems.Select(p => ToDto(p, batchPartCounts)).ToList();
+        if (!isAdmin)
+        {
+            foreach (var item in items)
+            {
+                item.AcquisitionCost = null;
+                item.AcquisitionSource = null;
+                item.AcquisitionBatchId = null;
+                item.AcquisitionBatchSource = null;
+                item.EffectiveAcquisitionCost = null;
+                item.EffectiveAcquisitionSource = null;
+            }
+        }
 
         return new PagedResult<ProductDto>
         {
-            Items = pageItems.Select(ToDto).ToList(),
+            Items = items,
             Page = page,
             PageSize = PageSize,
             TotalCount = totalCount,
@@ -79,15 +106,36 @@ public class ProductService : IProductService
         };
     }
 
-    public async Task<ProductDto?> GetProductByIdAsync(Guid id, CancellationToken cancellationToken = default)
+    public async Task<ProductDto?> GetProductByIdAsync(Guid id, bool isAdmin, CancellationToken cancellationToken = default)
     {
         var product = await _dbContext.Products
             .Include(p => p.Category)
             .Include(p => p.SourceVehicleModel).ThenInclude(m => m.VehicleBrand)
             .Include(p => p.ProductImages)
+            .Include(p => p.AcquisitionBatch)
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
 
-        return product is null ? null : ToDto(product);
+        if (product is null)
+        {
+            return null;
+        }
+
+        var batchPartCounts = await GetBatchPartCountsAsync(
+            product.AcquisitionBatchId.HasValue ? new[] { product.AcquisitionBatchId.Value } : Array.Empty<Guid>(),
+            cancellationToken);
+
+        var dto = ToDto(product, batchPartCounts);
+        if (!isAdmin)
+        {
+            dto.AcquisitionCost = null;
+            dto.AcquisitionSource = null;
+            dto.AcquisitionBatchId = null;
+            dto.AcquisitionBatchSource = null;
+            dto.EffectiveAcquisitionCost = null;
+            dto.EffectiveAcquisitionSource = null;
+        }
+
+        return dto;
     }
 
     public async Task<ProductResult> CreateProductAsync(CreateProductRequest request, CancellationToken cancellationToken = default)
@@ -95,6 +143,11 @@ public class ProductService : IProductService
         if (request.Price is < 0)
         {
             return ProductResult.InvalidPrice("Price must be greater than or equal to zero when provided.");
+        }
+
+        if (request.Status is not (null or ProductStatus.Available or ProductStatus.Hidden))
+        {
+            return ProductResult.InvalidStatus("A product can only be created as Available or Hidden.");
         }
 
         var category = await _dbContext.Categories.FirstOrDefaultAsync(c => c.Id == request.CategoryId, cancellationToken);
@@ -111,16 +164,30 @@ public class ProductService : IProductService
             return ProductResult.InvalidVehicleModel("The specified source vehicle model does not exist.");
         }
 
+        AcquisitionBatch? acquisitionBatch = null;
+        if (request.AcquisitionBatchId.HasValue)
+        {
+            acquisitionBatch = await _dbContext.AcquisitionBatches
+                .FirstOrDefaultAsync(b => b.Id == request.AcquisitionBatchId.Value, cancellationToken);
+            if (acquisitionBatch is null)
+            {
+                return ProductResult.InvalidAcquisitionBatch("The specified acquisition batch does not exist.");
+            }
+        }
+
         var product = new Product
         {
             CategoryId = request.CategoryId,
             SourceVehicleModelId = request.SourceVehicleModelId,
             Price = request.Price,
+            AcquisitionCost = request.AcquisitionCost,
+            AcquisitionSource = request.AcquisitionSource,
+            AcquisitionBatchId = request.AcquisitionBatchId,
             Color = request.Color,
             Side = request.Side,
             Position = request.Position,
             Description = request.Description,
-            Status = ProductStatus.Available
+            Status = request.Status ?? ProductStatus.Available
         };
 
         _dbContext.Products.Add(product);
@@ -128,8 +195,13 @@ public class ProductService : IProductService
 
         product.Category = category;
         product.SourceVehicleModel = vehicleModel;
+        product.AcquisitionBatch = acquisitionBatch;
 
-        return ProductResult.Success(ToDto(product));
+        var batchPartCounts = await GetBatchPartCountsAsync(
+            request.AcquisitionBatchId.HasValue ? new[] { request.AcquisitionBatchId.Value } : Array.Empty<Guid>(),
+            cancellationToken);
+
+        return ProductResult.Success(ToDto(product, batchPartCounts));
     }
 
     public async Task<ProductResult> UpdateProductAsync(Guid id, UpdateProductRequest request, CancellationToken cancellationToken = default)
@@ -159,9 +231,23 @@ public class ProductService : IProductService
             return ProductResult.InvalidVehicleModel("The specified source vehicle model does not exist.");
         }
 
+        AcquisitionBatch? acquisitionBatch = null;
+        if (request.AcquisitionBatchId.HasValue)
+        {
+            acquisitionBatch = await _dbContext.AcquisitionBatches
+                .FirstOrDefaultAsync(b => b.Id == request.AcquisitionBatchId.Value, cancellationToken);
+            if (acquisitionBatch is null)
+            {
+                return ProductResult.InvalidAcquisitionBatch("The specified acquisition batch does not exist.");
+            }
+        }
+
         product.CategoryId = request.CategoryId;
         product.SourceVehicleModelId = request.SourceVehicleModelId;
         product.Price = request.Price;
+        product.AcquisitionCost = request.AcquisitionCost;
+        product.AcquisitionSource = request.AcquisitionSource;
+        product.AcquisitionBatchId = request.AcquisitionBatchId;
         product.Color = request.Color;
         product.Side = request.Side;
         product.Position = request.Position;
@@ -171,8 +257,13 @@ public class ProductService : IProductService
 
         product.Category = category;
         product.SourceVehicleModel = vehicleModel;
+        product.AcquisitionBatch = acquisitionBatch;
 
-        return ProductResult.Success(ToDto(product));
+        var batchPartCounts = await GetBatchPartCountsAsync(
+            request.AcquisitionBatchId.HasValue ? new[] { request.AcquisitionBatchId.Value } : Array.Empty<Guid>(),
+            cancellationToken);
+
+        return ProductResult.Success(ToDto(product, batchPartCounts));
     }
 
     public async Task<ProductDeleteResult> HideProductAsync(Guid id, CancellationToken cancellationToken = default)
@@ -187,6 +278,60 @@ public class ProductService : IProductService
         await _dbContext.SaveChangesAsync(cancellationToken);
 
         return ProductDeleteResult.Success();
+    }
+
+    public async Task<ProductDeleteResult> RestoreProductAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var product = await _dbContext.Products.FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (product is null)
+        {
+            return ProductDeleteResult.NotFound();
+        }
+
+        if (product.Status != ProductStatus.Hidden)
+        {
+            return ProductDeleteResult.InvalidStatus("Only hidden products can be restored.");
+        }
+
+        product.Status = ProductStatus.Available;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        return ProductDeleteResult.Success();
+    }
+
+    public async Task<ProductResult> MarkProductSoldAsync(Guid id, MarkProductSoldRequest request, CancellationToken cancellationToken = default)
+    {
+        if (request.SoldPrice < 0)
+        {
+            return ProductResult.InvalidPrice("Sold price must be greater than or equal to zero.");
+        }
+
+        var product = await _dbContext.Products
+            .Include(p => p.Category)
+            .Include(p => p.SourceVehicleModel).ThenInclude(m => m.VehicleBrand)
+            .Include(p => p.ProductImages)
+            .Include(p => p.AcquisitionBatch)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+        if (product is null)
+        {
+            return ProductResult.NotFound();
+        }
+
+        if (product.Status == ProductStatus.Sold)
+        {
+            return ProductResult.InvalidStatus("This product is already marked as sold.");
+        }
+
+        product.Status = ProductStatus.Sold;
+        product.SoldPrice = request.SoldPrice;
+        product.SoldAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var batchPartCounts = await GetBatchPartCountsAsync(
+            product.AcquisitionBatchId.HasValue ? new[] { product.AcquisitionBatchId.Value } : Array.Empty<Guid>(),
+            cancellationToken);
+
+        return ProductResult.Success(ToDto(product, batchPartCounts));
     }
 
     public async Task<ProductImageResult> AddProductImageAsync(Guid productId, UploadProductImageRequest request, CancellationToken cancellationToken = default)
@@ -349,6 +494,40 @@ public class ProductService : IProductService
         return ProductCompatibilityDeleteResult.Success();
     }
 
+    private async Task<Dictionary<Guid, int>> GetBatchPartCountsAsync(IEnumerable<Guid> batchIds, CancellationToken cancellationToken)
+    {
+        var ids = batchIds.Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return new Dictionary<Guid, int>();
+        }
+
+        return await _dbContext.Products
+            .Where(p => p.AcquisitionBatchId.HasValue && ids.Contains(p.AcquisitionBatchId.Value))
+            .GroupBy(p => p.AcquisitionBatchId!.Value)
+            .Select(g => new { BatchId = g.Key, Count = g.Count() })
+            .ToDictionaryAsync(x => x.BatchId, x => x.Count, cancellationToken);
+    }
+
+    private static ProductDto ToDto(Product product, Dictionary<Guid, int> batchPartCounts)
+    {
+        var partCount = product.AcquisitionBatchId.HasValue
+            ? batchPartCounts.GetValueOrDefault(product.AcquisitionBatchId.Value)
+            : 0;
+
+        var effectiveCost = product.AcquisitionCost
+            ?? (product.AcquisitionBatch is not null && partCount > 0 ? product.AcquisitionBatch.TotalCost / partCount : null);
+
+        var effectiveSource = product.AcquisitionSource ?? product.AcquisitionBatch?.Source;
+
+        var dto = ToDto(product);
+        dto.AcquisitionBatchId = product.AcquisitionBatchId;
+        dto.AcquisitionBatchSource = product.AcquisitionBatch?.Source;
+        dto.EffectiveAcquisitionCost = effectiveCost;
+        dto.EffectiveAcquisitionSource = effectiveSource;
+        return dto;
+    }
+
     private static ProductDto ToDto(Product product) => new()
     {
         Id = product.Id,
@@ -363,6 +542,9 @@ public class ProductService : IProductService
         EndYear = product.SourceVehicleModel.EndYear,
         Variant = product.SourceVehicleModel.Variant,
         Price = product.Price,
+        SoldPrice = product.SoldPrice,
+        AcquisitionCost = product.AcquisitionCost,
+        AcquisitionSource = product.AcquisitionSource,
         Color = product.Color,
         Status = product.Status,
         Side = product.Side,

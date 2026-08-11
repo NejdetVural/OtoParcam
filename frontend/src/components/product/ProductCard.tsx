@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
 import type { ProductDto } from "../../api/products";
+import { productStatusLabels, ProductStatus } from "../../api/types";
 import { resolveImageUrl } from "../../lib/images";
+import { Badge } from "../ui/Badge";
 import { FavoriteButton } from "./FavoriteButton";
 
 function formatPrice(price: number | null): string {
@@ -23,6 +25,13 @@ export function ProductCard({ product }: { product: ProductDto }) {
           <img src={resolveImageUrl(cover)} alt={product.title} className="h-full w-full object-cover" />
         ) : (
           <div className="flex h-full w-full items-center justify-center text-sm text-slate-400">Görsel yok</div>
+        )}
+        {product.status !== ProductStatus.Available && (
+          <span className="absolute left-2 top-2">
+            <Badge tone={product.status === ProductStatus.Sold ? "warning" : "neutral"}>
+              {productStatusLabels[product.status]}
+            </Badge>
+          </span>
         )}
         <FavoriteButton productId={product.id} className="absolute right-2 top-2 shadow-sm" />
       </div>

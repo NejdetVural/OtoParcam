@@ -16,6 +16,7 @@ import { AdminProductFormPage } from "./pages/AdminProductFormPage";
 import { AdminCategoriesPage } from "./pages/AdminCategoriesPage";
 import { AdminVehicleBrandsPage } from "./pages/AdminVehicleBrandsPage";
 import { AdminVehicleModelsPage } from "./pages/AdminVehicleModelsPage";
+import { AdminAcquisitionBatchesPage } from "./pages/AdminAcquisitionBatchesPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -49,6 +50,7 @@ export const router = createBrowserRouter([
           { path: "admin/kategoriler", element: <AdminCategoriesPage /> },
           { path: "admin/markalar", element: <AdminVehicleBrandsPage /> },
           { path: "admin/modeller", element: <AdminVehicleModelsPage /> },
+          { path: "admin/toplu-alimlar", element: <AdminAcquisitionBatchesPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

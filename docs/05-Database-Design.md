@@ -2,13 +2,42 @@
 
 ## Database Design Report (DDR)
 
-**Version:** 1.1
+**Version:** 1.5
 
 **Author:** Nejdet Vural
 
 **Date:** 20.07.2026
 
 ---
+
+## Changelog (v1.4 → v1.5)
+
+- **Added `Product.SoldAt` (`DATETIME2`, nullable)**, plus `IX_Product_SoldAt` — see §6.1. Set alongside `SoldPrice` on
+  both sale paths (approved purchase request, admin "mark as sold"), deliberately independent of `UpdatedAt` so a later
+  unrelated edit to a sold product can't shift it into a different reporting period. Powers the `period` filter on
+  `GET /admin/reports/statistics` (BR-79).
+
+## Changelog (v1.3 → v1.4)
+
+- **Added `Product.SoldPrice` (`DECIMAL(10,2)`, nullable)**, plus the `CK_Product_SoldPrice` check constraint — see §6.1.
+  Previously the sold price was derived on every read from the approving `PurchaseRequestItem`; it is now a real column,
+  set either when a purchase request is approved or by the new administrator-only "mark as sold" action (which has no
+  purchase request behind it at all — see the API spec's `PATCH /products/{id}/sell`). Per BR-78, DECISION-008.
+
+## Changelog (v1.2 → v1.3)
+
+- **Added `AcquisitionBatch`** (§6.11) — records one lump-sum purchase of multiple parts (e.g. a whole insurance-total-loss
+  vehicle), which is normal in this business but always sold as individual parts. **Added `Product.AcquisitionBatchId`**
+  (`UNIQUEIDENTIFIER`, nullable FK to `AcquisitionBatch`, `ON DELETE NO ACTION`) — see §6.1. `Product.AcquisitionCost`/
+  `AcquisitionSource` are unchanged; a linked batch is only used as a fallback when a Product has no individual override
+  (BR-72/73/74). Per DECISION-007.
+
+## Changelog (v1.1 → v1.2)
+
+- **Added `Product.AcquisitionCost` (`DECIMAL(10,2)`, nullable) and `Product.AcquisitionSource` (`NVARCHAR(500)`, nullable)**,
+  plus the `CK_Product_AcquisitionCost` check constraint — see §6.1. Both are internal-only, gated in the application layer;
+  support the new `/admin/reports/statistics` report (pulls "Sales analytics"/"Advanced reporting" forward from the SRS's
+  Future Enhancements into v1.0, per BR-69/BR-70/BR-71).
 
 ## Changelog (v1.0 → v1.1)
 
@@ -185,6 +214,11 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | CategoryId           | UNIQUEIDENTIFIER                     | No       | References the product category.                                         |
 | SourceVehicleModelId | UNIQUEIDENTIFIER                     | No       | References the vehicle model from which the part was removed.            |
 | Price                | DECIMAL(10,2)            | Yes      | Product selling price. If NULL, the UI displays **"Fiyat İçin Arayın"**. |
+| SoldPrice            | DECIMAL(10,2)            | Yes      | The price the product actually sold for. Set when a purchase request is approved (BR-71) or via the administrator "mark as sold" action (BR-78). NULL until the product is Sold. |
+| SoldAt               | DATETIME2                | Yes      | When the product was sold. Set alongside SoldPrice on both sale paths; independent of UpdatedAt so a later edit doesn't shift it. Powers report period filtering (BR-79). |
+| AcquisitionCost      | DECIMAL(10,2)            | Yes      | What the shop paid to acquire the part. Internal-only — never returned to Customer or public callers. |
+| AcquisitionSource    | NVARCHAR(500)            | Yes      | Free-text note on where the part came from (e.g. a scrapyard or an insurance company). Internal-only, same visibility rule as AcquisitionCost. |
+| AcquisitionBatchId   | UNIQUEIDENTIFIER         | Yes      | Optional reference to the lump-sum AcquisitionBatch this part came from. Used as a cost fallback only when AcquisitionCost is null (see §6.11). |
 | Status          | INT                  | No       | Product availability status (Enum).                                      |
 | Color                | INT                  | No       | Product color (Enum).                                                    |
 | Side                 | INT                  | Yes      | Which side of the vehicle the part is from (Enum: Left, Right). Null when the category has no side (e.g. Hood). |
@@ -205,6 +239,7 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 
 * FK_Product_Category → Category(Id)
 * FK_Product_SourceVehicleModel → VehicleModel(Id)
+* FK_Product_AcquisitionBatch → AcquisitionBatch(Id)
 
 ---
 
@@ -215,7 +250,10 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | PK_Product                    | Primary Key                                                              |
 | FK_Product_Category           | References Category                                                      |
 | FK_Product_SourceVehicleModel | References VehicleModel                                                  |
+| FK_Product_AcquisitionBatch   | References AcquisitionBatch                                             |
 | CK_Product_Price              | Price must be greater than or equal to zero when provided.               |
+| CK_Product_SoldPrice          | SoldPrice must be greater than or equal to zero when provided.           |
+| CK_Product_AcquisitionCost    | AcquisitionCost must be greater than or equal to zero when provided.     |
 | CK_Product_ImageCount         | A Product must contain between 1 and 10 images (application validation). |
 
 ---
@@ -229,6 +267,8 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | IX_Product_SourceVehicleModelId | Product filtering by source vehicle |
 | IX_Product_Status          | Availability filtering              |
 | IX_Product_Color                | Color filtering                     |
+| IX_Product_SoldAt                | Report period filtering             |
+| IX_Product_AcquisitionBatchId    | Roll up parts belonging to a batch  |
 
 ---
 
@@ -242,6 +282,7 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 | ProductCompatibility | One-to-Many | A Product may be compatible with multiple vehicle models. |
 | PurchaseRequestItem  | One-to-Many | A Product may appear in multiple purchase requests.       |
 | Favorite             | One-to-Many | A Product may be added to multiple users' favorites.      |
+| AcquisitionBatch     | Many-to-One | A Product may optionally belong to one AcquisitionBatch.  |
 
 ---
 
@@ -259,6 +300,15 @@ Each Product corresponds to exactly one physical item and maintains its own cate
 * The first uploaded image is automatically used as the cover image.
 * Product images are displayed in their upload order.
 * Business rules such as dynamic product name generation and image ordering are enforced by the application layer.
+* AcquisitionCost and AcquisitionSource support the `/admin/reports/statistics` report (see the API Design Specification's
+  Reports section) — profit per sold item is derived as SoldPrice minus AcquisitionCost (or its batch-split fallback).
+  Visibility gating is enforced in the application layer (`ProductService`), not the schema.
+* SoldPrice is set from two independent paths that both lead to the same column: an approved purchase request
+  (negotiated price, falling back to the original price) or the administrator "mark as sold" action, which has no
+  purchase request at all (BR-78). Both are treated identically everywhere SoldPrice is read.
+* AcquisitionBatchId is only a fallback: when AcquisitionCost is null and AcquisitionBatchId is set, the application layer
+  reports an effective cost of the batch's TotalCost split evenly across every Product currently linked to it (see §6.11).
+  This split is computed at read time, never stored on the Product row.
 
 
 ---
@@ -937,6 +987,66 @@ It stores the product price at the time of the request and any negotiated price 
 * Updating NegotiatedPrice never changes the Product price.
 * Final payable amounts are calculated from PurchaseRequestItems and are not stored in the PurchaseRequest entity.
 * Quantity is not supported because every Product represents a unique physical spare part.
+
+---
+
+# 6.11 AcquisitionBatch
+
+## Purpose
+
+The AcquisitionBatch entity represents a single lump-sum purchase that produced multiple Products — most commonly an
+entire insurance-total-loss vehicle bought whole and dismantled into individually-sold parts.
+
+It exists purely to make acquisition cost reporting realistic: the shop pays once for the whole lot, not per part, but
+still lists and sells every part individually.
+
+---
+
+## Columns
+
+| Column      | SQL Server Type | Nullable | Description                                                        |
+| ----------- | ---------------- | -------- | -------------------------------------------------------------------- |
+| Id          | UNIQUEIDENTIFIER | No       | Primary key.                                                        |
+| Source      | NVARCHAR(500)    | No       | Free-text description of where the lot came from (e.g. an insurance company, a scrapyard, a specific wrecked vehicle). |
+| TotalCost   | DECIMAL(10,2)    | No       | The single lump-sum amount paid for the entire batch.               |
+| PurchaseDate| DATETIME2        | No       | Date the batch was purchased.                                       |
+| Notes       | NVARCHAR(2000)   | Yes      | Optional free-text notes.                                           |
+| CreatedAt   | DATETIME2        | No       | Date and time when the batch record was created.                    |
+| UpdatedAt   | DATETIME2        | No       | Date and time of the last update.                                    |
+
+---
+
+## Primary Key
+
+* PK_AcquisitionBatch (Id)
+
+---
+
+## Constraints
+
+| Constraint                     | Description                                                  |
+| ------------------------------- | -------------------------------------------------------------- |
+| PK_AcquisitionBatch             | Primary Key                                                    |
+| CK_AcquisitionBatch_TotalCost   | TotalCost must be greater than or equal to zero.               |
+
+---
+
+## Relationships
+
+| Related Entity | Cardinality | Description                                                              |
+| --------------- | ----------- | ------------------------------------------------------------------------- |
+| Product          | One-to-Many | An AcquisitionBatch may produce multiple Products, each sold individually. |
+
+---
+
+## Notes
+
+* An AcquisitionBatch cannot be deleted while one or more Products still reference it (BR-74), matching the delete-blocking
+  pattern already used for Category/VehicleBrand/VehicleModel.
+* AcquisitionBatch does not replace or gate individual Product pricing/selling — every linked Product is still created,
+  priced, and sold the same way as a standalone Product (BR-72).
+* Managed exclusively via `/admin/acquisition-batches` (Administrator only) — see the API Design Specification's
+  Acquisition Batches section.
 
 
 

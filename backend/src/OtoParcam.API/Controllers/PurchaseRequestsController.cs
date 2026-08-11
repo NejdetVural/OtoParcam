@@ -52,6 +52,7 @@ public class PurchaseRequestsController : ControllerBase
             PurchaseRequestOperationStatus.EmptyProductIds => BadRequest(new { error = result.Error }),
             PurchaseRequestOperationStatus.ProductNotFound => BadRequest(new { error = result.Error }),
             PurchaseRequestOperationStatus.ProductNotAvailable => Conflict(new { error = result.Error }),
+            PurchaseRequestOperationStatus.ProductAlreadyRequested => Conflict(new { error = result.Error }),
             _ => BadRequest()
         };
     }
@@ -78,6 +79,7 @@ public class PurchaseRequestsController : ControllerBase
             PurchaseRequestOperationStatus.Success => Ok(result.PurchaseRequest),
             PurchaseRequestOperationStatus.NotFound => NotFound(),
             PurchaseRequestOperationStatus.InvalidTransition => Conflict(new { error = result.Error }),
+            PurchaseRequestOperationStatus.ProductNotAvailable => Conflict(new { error = result.Error }),
             _ => BadRequest()
         };
     }

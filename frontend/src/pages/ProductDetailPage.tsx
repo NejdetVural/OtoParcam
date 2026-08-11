@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { getProductById, getProductCompatibility } from "../api/products";
+import { getProductById, getProductCompatibility, hideProduct, restoreProduct } from "../api/products";
 import { createPurchaseRequest } from "../api/purchaseRequests";
 import { extractErrorMessages } from "../api/errors";
 import { productColorLabels, productPositionLabels, productSideLabels, productStatusLabels, ProductStatus } from "../api/types";
@@ -11,6 +11,7 @@ import { resolveImageUrl } from "../lib/images";
 import { Spinner } from "../components/ui/Spinner";
 import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
+import { DropdownMenu } from "../components/ui/DropdownMenu";
 import { FavoriteButton } from "../components/product/FavoriteButton";
 
 function formatPrice(price: number | null): string {
@@ -36,6 +37,22 @@ export function ProductDetailPage() {
       navigate("/taleplerim");
     },
     onError: (error) => setRequestError(extractErrorMessages(error)[0]),
+  });
+
+  const hideMutation = useMutation({
+    mutationFn: () => hideProduct(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreProduct(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    },
   });
 
   const productQuery = useQuery({
@@ -104,7 +121,37 @@ export function ProductDetailPage() {
               <span className="text-xs font-medium text-slate-500">{product.categoryName}</span>
               <h1 className="text-2xl font-semibold text-slate-900">{product.title}</h1>
             </div>
-            <FavoriteButton productId={product.id} />
+            {isAdmin ? (
+              <DropdownMenu
+                items={[
+                  { label: "Düzenle", onClick: () => navigate(`/admin/urunler/${product.id}/duzenle`) },
+                  ...(product.status === ProductStatus.Hidden
+                    ? [
+                        {
+                          label: "Görünür Yap",
+                          onClick: () => restoreMutation.mutate(),
+                          disabled: restoreMutation.isPending,
+                        },
+                      ]
+                    : product.status === ProductStatus.Available
+                      ? [
+                          {
+                            label: "Gizle",
+                            onClick: () => hideMutation.mutate(),
+                            disabled: hideMutation.isPending,
+                            destructive: true,
+                            confirm: {
+                              message: "Bu ürünü gizlemek istediğinize emin misiniz? Müşteriler artık göremeyecek.",
+                              confirmLabel: "Evet, Gizle",
+                            },
+                          },
+                        ]
+                      : []),
+                ]}
+              />
+            ) : (
+              <FavoriteButton productId={product.id} />
+            )}
           </div>
 
           <span className="text-2xl font-semibold text-slate-900">{formatPrice(product.price)}</span>

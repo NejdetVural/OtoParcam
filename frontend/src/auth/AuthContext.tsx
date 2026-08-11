@@ -1,5 +1,6 @@
 import { createContext, useContext, useMemo, useState, type ReactNode } from "react";
 import * as authApi from "../api/auth";
+import { queryClient } from "../lib/queryClient";
 import { decodeUser, isTokenExpired, type CurrentUser } from "./jwt";
 import { clearSession, getToken, setToken } from "./session";
 
@@ -31,6 +32,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isAuthenticated: user !== null,
       async login(request) {
         const { token } = await authApi.login(request);
+        queryClient.clear();
         setToken(token);
         setUser(decodeUser(token));
       },
@@ -38,6 +40,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         await authApi.register(request);
       },
       logout() {
+        queryClient.clear();
         clearSession();
         setUser(null);
       },

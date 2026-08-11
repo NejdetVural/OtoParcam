@@ -404,6 +404,21 @@ Supported statuses include:
 
 ---
 
+## FR-28 Sales and Inventory Reporting
+
+Administrators shall be able to generate an on-demand PDF report covering product-status counts, total customers, pending
+purchase requests, per-item sales performance (acquisition cost, sold price, profit) for every Sold product, and the
+list-price/acquisition-cost value of current Available inventory.
+
+Each `Product` shall support recording an acquisition cost and a free-text acquisition source (e.g. a scrapyard or an
+insurance company associated with a donor vehicle). Both fields are internal-only: never exposed to Customer or public
+callers, only readable/writable by Administrators.
+
+This requirement pulls "Sales analytics"/"Advanced reporting" forward from §6 Future Enhancements into v1.0 scope, at
+explicit user request — see the API Design Specification's `Reports` section for the endpoint.
+
+---
+
 # 4. Non-Functional Requirements
 
 ## NFR-01 Performance
@@ -511,10 +526,10 @@ Future versions may include:
 - Barcode support
 - AI-powered compatibility recommendations
 - Multi-branch inventory
-- Supplier management
+- Supplier management (partially covered by the acquisition-source field on `Product` — see FR-28; a dedicated Supplier entity is still future scope)
 - Cargo tracking
-- Sales analytics
-- Advanced reporting
+
+Sales analytics and advanced reporting were pulled forward into v1.0 — see FR-28.
 
 ---
 

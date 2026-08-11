@@ -20,6 +20,13 @@ export interface ProductDto {
   endYear: number;
   variant: string | null;
   price: number | null;
+  soldPrice: number | null;
+  acquisitionCost: number | null;
+  acquisitionSource: string | null;
+  acquisitionBatchId: string | null;
+  acquisitionBatchSource: string | null;
+  effectiveAcquisitionCost: number | null;
+  effectiveAcquisitionSource: string | null;
   color: ProductColor;
   status: ProductStatus;
   side: ProductSide | null;
@@ -44,6 +51,7 @@ export interface ProductListQuery {
   vehicleModelId?: string;
   keyword?: string;
   color?: ProductColor;
+  status?: ProductStatus;
   page?: number;
   sortBy?: "priceAsc" | "priceDesc";
 }
@@ -67,10 +75,14 @@ export interface ProductRequest {
   categoryId: string;
   sourceVehicleModelId: string;
   price?: number | null;
+  acquisitionCost?: number | null;
+  acquisitionSource?: string | null;
+  acquisitionBatchId?: string | null;
   color: ProductColor;
   side?: ProductSide | null;
   position?: ProductPosition | null;
   description?: string | null;
+  status?: ProductStatus;
 }
 
 export async function createProduct(request: ProductRequest): Promise<ProductDto> {
@@ -84,6 +96,15 @@ export async function updateProduct(id: string, request: ProductRequest): Promis
 
 export async function hideProduct(id: string): Promise<void> {
   await apiClient.delete(`/products/${id}`);
+}
+
+export async function restoreProduct(id: string): Promise<void> {
+  await apiClient.patch(`/products/${id}/restore`);
+}
+
+export async function markProductSold(id: string, soldPrice: number): Promise<ProductDto> {
+  const { data } = await apiClient.patch<ProductDto>(`/products/${id}/sell`, { soldPrice });
+  return data;
 }
 
 export async function addProductImage(id: string, file: File): Promise<ProductImageDto> {

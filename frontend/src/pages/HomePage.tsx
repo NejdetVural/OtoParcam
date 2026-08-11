@@ -5,10 +5,13 @@ import { getCategories } from "../api/categories";
 import { getProducts } from "../api/products";
 import { getVehicleBrands } from "../api/vehicleBrands";
 import { getVehicleModels } from "../api/vehicleModels";
-import { productColorLabels, ProductColor } from "../api/types";
+import { productColorLabels, ProductColor, ProductStatus } from "../api/types";
+import { useAuth } from "../auth/AuthContext";
+import { Roles } from "../auth/roles";
 import { ProductCard } from "../components/product/ProductCard";
 import { Spinner } from "../components/ui/Spinner";
 import { Button } from "../components/ui/Button";
+import { Switch } from "../components/ui/Switch";
 
 const colorSwatchHex: Record<ProductColor, string> = {
   [ProductColor.Black]: "#1c1917",
@@ -45,6 +48,8 @@ function SidebarLink({ active, onClick, children }: { active: boolean; onClick: 
 
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const { user } = useAuth();
+  const isAdmin = user?.roles.includes(Roles.Administrator) ?? false;
 
   const categoryId = searchParams.get("categoryId") ?? undefined;
   const vehicleBrandId = searchParams.get("vehicleBrandId") ?? undefined;
@@ -53,6 +58,7 @@ export function HomePage() {
   const color = searchParams.get("color") ? Number(searchParams.get("color")) : undefined;
   const sortBy = (searchParams.get("sortBy") as "priceAsc" | "priceDesc" | null) ?? undefined;
   const page = Number(searchParams.get("page") ?? "1");
+  const onlyAvailable = isAdmin && searchParams.get("onlyAvailable") === "1";
 
   const [searchInput, setSearchInput] = useState(keyword ?? "");
 
@@ -73,9 +79,10 @@ export function HomePage() {
   const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: getCategories });
   const vehicleBrandsQuery = useQuery({ queryKey: ["vehicle-brands"], queryFn: getVehicleBrands });
   const vehicleModelsQuery = useQuery({ queryKey: ["vehicle-models"], queryFn: getVehicleModels });
+  const status = onlyAvailable ? ProductStatus.Available : undefined;
   const productsQuery = useQuery({
-    queryKey: ["products", { categoryId, vehicleBrandId, vehicleModelId, keyword, color, sortBy, page }],
-    queryFn: () => getProducts({ categoryId, vehicleBrandId, vehicleModelId, keyword, color, sortBy, page }),
+    queryKey: ["products", { categoryId, vehicleBrandId, vehicleModelId, keyword, color, status, sortBy, page }],
+    queryFn: () => getProducts({ categoryId, vehicleBrandId, vehicleModelId, keyword, color, status, sortBy, page }),
   });
 
   const modelsForBrand = (vehicleModelsQuery.data ?? []).filter((m) => m.vehicleBrandId === vehicleBrandId);
@@ -198,7 +205,14 @@ export function HomePage() {
             <h1 className="text-2xl font-semibold text-slate-900">Ürünler</h1>
             <p className="text-sm text-slate-500">Aracınıza uygun orijinal çıkma yedek parçaları bulun.</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-3">
+            {isAdmin && (
+              <Switch
+                checked={onlyAvailable}
+                onChange={(checked) => updateParam("onlyAvailable", checked ? "1" : "")}
+                label="Sadece Satıştakiler"
+              />
+            )}
             <input
               value={searchInput}
               onChange={(e) => setSearchInput(e.target.value)}

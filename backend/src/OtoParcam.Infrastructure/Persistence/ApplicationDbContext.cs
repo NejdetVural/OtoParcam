@@ -22,6 +22,7 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
     public DbSet<Favorite> Favorites => Set<Favorite>();
     public DbSet<PurchaseRequest> PurchaseRequests => Set<PurchaseRequest>();
     public DbSet<PurchaseRequestItem> PurchaseRequestItems => Set<PurchaseRequestItem>();
+    public DbSet<AcquisitionBatch> AcquisitionBatches => Set<AcquisitionBatch>();
 
     protected override void OnModelCreating(ModelBuilder builder)
     {

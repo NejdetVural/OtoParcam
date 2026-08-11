@@ -5,6 +5,7 @@ export interface DashboardStatsDto {
   totalCustomers: number;
   pendingPurchaseRequests: number;
   productsAwaitingAttention: number;
+  acquisitionBatchesInProgress: number;
 }
 
 export async function getDashboardStats(): Promise<DashboardStatsDto> {

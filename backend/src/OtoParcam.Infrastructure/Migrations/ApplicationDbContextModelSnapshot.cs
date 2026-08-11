@@ -153,6 +153,41 @@ namespace OtoParcam.Infrastructure.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("OtoParcam.Domain.Entities.AcquisitionBatch", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
+                    b.Property<DateTime>("PurchaseDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<decimal>("TotalCost")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("AcquisitionBatches", t =>
+                        {
+                            t.HasCheckConstraint("CK_AcquisitionBatch_TotalCost", "[TotalCost] >= 0");
+                        });
+                });
+
             modelBuilder.Entity("OtoParcam.Domain.Entities.ApplicationUser", b =>
                 {
                     b.Property<Guid>("Id")
@@ -298,6 +333,16 @@ namespace OtoParcam.Infrastructure.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier");
 
+                    b.Property<Guid?>("AcquisitionBatchId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<decimal?>("AcquisitionCost")
+                        .HasColumnType("decimal(10,2)");
+
+                    b.Property<string>("AcquisitionSource")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<Guid>("CategoryId")
                         .HasColumnType("uniqueidentifier");
 
@@ -320,6 +365,12 @@ namespace OtoParcam.Infrastructure.Migrations
                     b.Property<int?>("Side")
                         .HasColumnType("int");
 
+                    b.Property<DateTime?>("SoldAt")
+                        .HasColumnType("datetime2");
+
+                    b.Property<decimal?>("SoldPrice")
+                        .HasColumnType("decimal(10,2)");
+
                     b.Property<Guid>("SourceVehicleModelId")
                         .HasColumnType("uniqueidentifier");
 
@@ -331,9 +382,13 @@ namespace OtoParcam.Infrastructure.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("AcquisitionBatchId");
+
                     b.HasIndex("CategoryId");
 
                     b.HasIndex("Color");
+
+                    b.HasIndex("SoldAt");
 
                     b.HasIndex("SourceVehicleModelId");
 
@@ -341,7 +396,11 @@ namespace OtoParcam.Infrastructure.Migrations
 
                     b.ToTable("Products", t =>
                         {
+                            t.HasCheckConstraint("CK_Product_AcquisitionCost", "[AcquisitionCost] >= 0");
+
                             t.HasCheckConstraint("CK_Product_Price", "[Price] >= 0");
+
+                            t.HasCheckConstraint("CK_Product_SoldPrice", "[SoldPrice] >= 0");
                         });
                 });
 
@@ -599,6 +658,11 @@ namespace OtoParcam.Infrastructure.Migrations
 
             modelBuilder.Entity("OtoParcam.Domain.Entities.Product", b =>
                 {
+                    b.HasOne("OtoParcam.Domain.Entities.AcquisitionBatch", "AcquisitionBatch")
+                        .WithMany("Products")
+                        .HasForeignKey("AcquisitionBatchId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
                     b.HasOne("OtoParcam.Domain.Entities.Category", "Category")
                         .WithMany("Products")
                         .HasForeignKey("CategoryId")
@@ -610,6 +674,8 @@ namespace OtoParcam.Infrastructure.Migrations
                         .HasForeignKey("SourceVehicleModelId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired();
+
+                    b.Navigation("AcquisitionBatch");
 
                     b.Navigation("Category");
 
@@ -685,6 +751,11 @@ namespace OtoParcam.Infrastructure.Migrations
                         .IsRequired();
 
                     b.Navigation("VehicleBrand");
+                });
+
+            modelBuilder.Entity("OtoParcam.Domain.Entities.AcquisitionBatch", b =>
+                {
+                    b.Navigation("Products");
                 });
 
             modelBuilder.Entity("OtoParcam.Domain.Entities.ApplicationUser", b =>

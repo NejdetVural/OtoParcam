@@ -11,13 +11,28 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.Property(p => p.Price)
             .HasColumnType("decimal(10,2)");
 
+        builder.Property(p => p.SoldPrice)
+            .HasColumnType("decimal(10,2)");
+
+        builder.Property(p => p.AcquisitionCost)
+            .HasColumnType("decimal(10,2)");
+
+        builder.Property(p => p.AcquisitionSource)
+            .HasMaxLength(500);
+
         builder.Property(p => p.Description)
             .HasMaxLength(2000);
 
         builder.HasIndex(p => p.Status);
         builder.HasIndex(p => p.Color);
+        builder.HasIndex(p => p.SoldAt);
 
-        builder.ToTable(t => t.HasCheckConstraint("CK_Product_Price", "[Price] >= 0"));
+        builder.ToTable(t =>
+        {
+            t.HasCheckConstraint("CK_Product_Price", "[Price] >= 0");
+            t.HasCheckConstraint("CK_Product_SoldPrice", "[SoldPrice] >= 0");
+            t.HasCheckConstraint("CK_Product_AcquisitionCost", "[AcquisitionCost] >= 0");
+        });
 
         builder.HasOne(p => p.Category)
             .WithMany(c => c.Products)
@@ -27,6 +42,11 @@ public class ProductConfiguration : IEntityTypeConfiguration<Product>
         builder.HasOne(p => p.SourceVehicleModel)
             .WithMany(m => m.SourceProducts)
             .HasForeignKey(p => p.SourceVehicleModelId)
+            .OnDelete(DeleteBehavior.Restrict);
+
+        builder.HasOne(p => p.AcquisitionBatch)
+            .WithMany(b => b.Products)
+            .HasForeignKey(p => p.AcquisitionBatchId)
             .OnDelete(DeleteBehavior.Restrict);
     }
 }

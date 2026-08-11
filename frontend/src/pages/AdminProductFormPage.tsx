@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { getAcquisitionBatches } from "../api/acquisitionBatches";
 import { getCategories } from "../api/categories";
 import { getVehicleBrands } from "../api/vehicleBrands";
 import { getVehicleModels } from "../api/vehicleModels";
@@ -13,6 +14,7 @@ import {
   getProductCompatibility,
   hideProduct,
   removeProductCompatibility,
+  restoreProduct,
   updateProduct,
   type ProductRequest,
 } from "../api/products";
@@ -23,12 +25,14 @@ import {
   ProductPosition,
   productSideLabels,
   ProductSide,
+  ProductStatus,
 } from "../api/types";
 import { extractErrorMessages } from "../api/errors";
 import { Button } from "../components/ui/Button";
-import { ConfirmButton } from "../components/ui/ConfirmButton";
+import { DropdownMenu } from "../components/ui/DropdownMenu";
 import { Input } from "../components/ui/Input";
 import { Spinner } from "../components/ui/Spinner";
+import { Switch } from "../components/ui/Switch";
 import { resolveImageUrl } from "../lib/images";
 
 type FormState = {
@@ -36,10 +40,14 @@ type FormState = {
   vehicleBrandId: string;
   sourceVehicleModelId: string;
   price: string;
+  acquisitionCost: string;
+  acquisitionSource: string;
+  acquisitionBatchId: string;
   color: ProductColor;
   side: string;
   position: string;
   description: string;
+  inventoryOnly: boolean;
 };
 
 const emptyForm: FormState = {
@@ -47,10 +55,14 @@ const emptyForm: FormState = {
   vehicleBrandId: "",
   sourceVehicleModelId: "",
   price: "",
+  acquisitionCost: "",
+  acquisitionSource: "",
+  acquisitionBatchId: "",
   color: ProductColor.Other,
   side: "",
   position: "",
   description: "",
+  inventoryOnly: false,
 };
 
 function toRequest(form: FormState): ProductRequest {
@@ -58,9 +70,13 @@ function toRequest(form: FormState): ProductRequest {
     categoryId: form.categoryId,
     sourceVehicleModelId: form.sourceVehicleModelId,
     price: form.price.trim() ? Number(form.price) : null,
+    acquisitionCost: form.acquisitionCost.trim() ? Number(form.acquisitionCost) : null,
+    acquisitionSource: form.acquisitionSource.trim() ? form.acquisitionSource.trim() : null,
+    acquisitionBatchId: form.acquisitionBatchId ? form.acquisitionBatchId : null,
     color: form.color,
     side: form.side ? (Number(form.side) as ProductSide) : null,
     position: form.position ? (Number(form.position) as ProductPosition) : null,
+    status: form.inventoryOnly ? ProductStatus.Hidden : undefined,
     description: form.description.trim() ? form.description.trim() : null,
   };
 }
@@ -227,15 +243,18 @@ export function AdminProductFormPage() {
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
 
-  const [form, setForm] = useState<FormState>(emptyForm);
+  const prefill = location.state as Partial<FormState> | null;
+  const [form, setForm] = useState<FormState>(() => (prefill ? { ...emptyForm, ...prefill } : emptyForm));
   const [saveError, setSaveError] = useState<string[]>([]);
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
   const categoriesQuery = useQuery({ queryKey: ["categories"], queryFn: getCategories });
   const vehicleBrandsQuery = useQuery({ queryKey: ["vehicle-brands"], queryFn: getVehicleBrands });
   const vehicleModelsQuery = useQuery({ queryKey: ["vehicle-models"], queryFn: getVehicleModels });
+  const acquisitionBatchesQuery = useQuery({ queryKey: ["acquisition-batches"], queryFn: getAcquisitionBatches });
   const productQuery = useQuery({
     queryKey: ["product", id],
     queryFn: () => getProductById(id!),
@@ -249,13 +268,28 @@ export function AdminProductFormPage() {
         vehicleBrandId: productQuery.data.vehicleBrandId,
         sourceVehicleModelId: productQuery.data.sourceVehicleModelId,
         price: productQuery.data.price !== null ? String(productQuery.data.price) : "",
+        acquisitionCost: productQuery.data.acquisitionCost !== null ? String(productQuery.data.acquisitionCost) : "",
+        acquisitionSource: productQuery.data.acquisitionSource ?? "",
+        acquisitionBatchId: productQuery.data.acquisitionBatchId ?? "",
         color: productQuery.data.color,
         side: productQuery.data.side !== null ? String(productQuery.data.side) : "",
         position: productQuery.data.position !== null ? String(productQuery.data.position) : "",
         description: productQuery.data.description ?? "",
+        inventoryOnly: false,
       });
     }
   }, [productQuery.data]);
+
+  // "Yeni Parça Ekle" navigates from the edit page back to this same component at the create route —
+  // React Router doesn't remount it, so the lazy useState initializer alone won't re-apply the prefill.
+  useEffect(() => {
+    if (!isEdit) {
+      const nextPrefill = location.state as Partial<FormState> | null;
+      setForm(nextPrefill ? { ...emptyForm, ...nextPrefill } : emptyForm);
+      setSaveError([]);
+      setSavedAt(null);
+    }
+  }, [id, location.state]);
 
   const createMutation = useMutation({
     mutationFn: () => createProduct(toRequest(form)),
@@ -281,6 +315,15 @@ export function AdminProductFormPage() {
     mutationFn: () => hideProduct(id!),
     onSuccess: () => navigate("/admin/urunler"),
     onError: () => setSaveError(["Ürün gizlenirken bir hata oluştu."]),
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: () => restoreProduct(id!),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["product", id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+    },
+    onError: (err) => setSaveError(extractErrorMessages(err)),
   });
 
   function handleSubmit(e: FormEvent) {
@@ -316,15 +359,50 @@ export function AdminProductFormPage() {
           <h1 className="text-2xl font-semibold text-slate-900">{isEdit ? "Ürünü Düzenle" : "Yeni Ürün"}</h1>
           {isEdit && productQuery.data && <p className="text-sm text-slate-500">{productQuery.data.title}</p>}
         </div>
-        {isEdit && (
-          <ConfirmButton
-            label="Ürünü Gizle"
-            confirmLabel="Evet, Gizle"
-            message="Bu ürünü gizlemek istediğinize emin misiniz? Müşteriler artık göremeyecek."
-            triggerVariant="secondary"
-            disabled={hideMutation.isPending}
-            onConfirm={() => hideMutation.mutate()}
-          />
+        {isEdit && productQuery.data && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              onClick={() =>
+                navigate("/admin/urunler/yeni", {
+                  state: {
+                    categoryId: productQuery.data!.categoryId,
+                    vehicleBrandId: productQuery.data!.vehicleBrandId,
+                    sourceVehicleModelId: productQuery.data!.sourceVehicleModelId,
+                    color: productQuery.data!.color,
+                  } satisfies Partial<FormState>,
+                })
+              }
+            >
+              Yeni Parça Ekle
+            </Button>
+            {productQuery.data.status !== ProductStatus.Sold && (
+              <DropdownMenu
+                items={
+                  productQuery.data.status === ProductStatus.Hidden
+                    ? [
+                        {
+                          label: "Görünür Yap",
+                          onClick: () => restoreMutation.mutate(),
+                          disabled: restoreMutation.isPending,
+                        },
+                      ]
+                    : [
+                        {
+                          label: "Ürünü Gizle",
+                          onClick: () => hideMutation.mutate(),
+                          disabled: hideMutation.isPending,
+                          destructive: true,
+                          confirm: {
+                            message: "Bu ürünü gizlemek istediğinize emin misiniz? Müşteriler artık göremeyecek.",
+                            confirmLabel: "Evet, Gizle",
+                          },
+                        },
+                      ]
+                }
+              />
+            )}
+          </div>
         )}
       </div>
 
@@ -458,6 +536,77 @@ export function AdminProductFormPage() {
             className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
           />
         </label>
+
+        <div className="flex flex-col gap-3 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+          <div>
+            <h3 className="text-sm font-medium text-slate-900">Maliyet ve Kaynak Bilgisi</h3>
+            <p className="text-xs text-slate-500">Yalnızca yöneticiler görür — müşteri tarafında hiçbir zaman gösterilmez.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <Input
+              label="Alış Maliyeti (opsiyonel)"
+              type="number"
+              min={0}
+              step="0.01"
+              value={form.acquisitionCost}
+              onChange={(e) => setForm((p) => ({ ...p, acquisitionCost: e.target.value }))}
+              placeholder="Bu parça için ödenen tutar"
+            />
+            <Input
+              label="Kaynak (opsiyonel)"
+              type="text"
+              maxLength={500}
+              value={form.acquisitionSource}
+              onChange={(e) => setForm((p) => ({ ...p, acquisitionSource: e.target.value }))}
+              placeholder="Örn. Ovalı, Gümüş"
+            />
+            <label className="flex flex-col gap-1.5 text-sm sm:col-span-2">
+              <span className="font-medium text-slate-700">Toplu Alım (opsiyonel)</span>
+              <select
+                value={form.acquisitionBatchId}
+                onChange={(e) => setForm((p) => ({ ...p, acquisitionBatchId: e.target.value }))}
+                className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+              >
+                <option value="">Yok — bu parça ayrı satın alındı</option>
+                {acquisitionBatchesQuery.data?.map((batch) => (
+                  <option key={batch.id} value={batch.id}>
+                    {batch.source} ({batch.partCount} parça)
+                  </option>
+                ))}
+              </select>
+              <span className="text-xs text-slate-500">
+                Birlikte satın alınan (örn. sigortadan hasarlı bir araç) parçalar için seçin — maliyet, alıma bağlı toplam
+                parça sayısına göre otomatik bölüştürülür. Yukarıdaki "Alış Maliyeti" girilirse her zaman onun önceliği olur.
+              </span>
+            </label>
+            {isEdit &&
+              form.acquisitionBatchId &&
+              !form.acquisitionCost.trim() &&
+              productQuery.data?.effectiveAcquisitionCost !== null &&
+              productQuery.data?.effectiveAcquisitionCost !== undefined && (
+                <p className="text-xs text-slate-500 sm:col-span-2">
+                  Bu alıma göre tahmini parça başı maliyet:{" "}
+                  <span className="font-medium text-slate-700">
+                    {productQuery.data.effectiveAcquisitionCost.toLocaleString("tr-TR")} ₺
+                  </span>
+                </p>
+              )}
+          </div>
+        </div>
+
+        {!isEdit && (
+          <div className="flex flex-col gap-2 rounded-lg border border-dashed border-slate-300 bg-slate-50 p-4">
+            <Switch
+              checked={form.inventoryOnly}
+              onChange={(checked) => setForm((p) => ({ ...p, inventoryOnly: checked }))}
+              label="Sadece stok takibi — satışa çıkma"
+            />
+            <p className="text-xs text-slate-500">
+              Bu ürün müşteri tarafında görünmez, sadece envanterde kaldığını görmek için kaydedilir. İstediğiniz zaman
+              ürünü daha sonra "Görünür Yap" ile satışa açabilirsiniz.
+            </p>
+          </div>
+        )}
 
         {saveError.length > 0 && (
           <ul className="flex flex-col gap-1 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">

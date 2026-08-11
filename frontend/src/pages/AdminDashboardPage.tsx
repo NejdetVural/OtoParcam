@@ -1,6 +1,9 @@
-import { useQuery } from "@tanstack/react-query";
+import { useState } from "react";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { getDashboardStats } from "../api/dashboard";
+import { downloadStatisticsReport, reportPeriodLabels, ReportPeriod } from "../api/reports";
+import { Button } from "../components/ui/Button";
 import { Spinner } from "../components/ui/Spinner";
 
 function StatTile({ label, value, hint, to }: { label: string; value: number; hint?: string; to?: string }) {
@@ -28,12 +31,44 @@ function StatTile({ label, value, hint, to }: { label: string; value: number; hi
 
 export function AdminDashboardPage() {
   const statsQuery = useQuery({ queryKey: ["admin-dashboard-stats"], queryFn: getDashboardStats });
+  const [reportError, setReportError] = useState<string | null>(null);
+  const [reportPeriod, setReportPeriod] = useState<ReportPeriod>(ReportPeriod.AllTime);
+
+  const reportMutation = useMutation({
+    mutationFn: () => downloadStatisticsReport(reportPeriod),
+    onError: () => setReportError("Rapor oluşturulurken bir hata oluştu."),
+    onSuccess: () => setReportError(null),
+  });
 
   return (
     <div className="flex flex-col gap-6">
-      <div>
-        <h1 className="text-2xl font-semibold text-slate-900">Yönetim Paneli</h1>
-        <p className="text-sm text-slate-500">Genel durum özeti.</p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Yönetim Paneli</h1>
+          <p className="text-sm text-slate-500">Genel durum özeti.</p>
+        </div>
+        <div className="flex flex-col items-end gap-2">
+          <div className="flex items-center gap-1">
+            {Object.values(ReportPeriod).map((value) => (
+              <button
+                key={value}
+                type="button"
+                onClick={() => setReportPeriod(value)}
+                className={`rounded-full px-3 py-1 text-xs font-medium transition-colors ${
+                  reportPeriod === value
+                    ? "bg-slate-900 text-white"
+                    : "bg-slate-100 text-slate-600 hover:bg-slate-200"
+                }`}
+              >
+                {reportPeriodLabels[value]}
+              </button>
+            ))}
+          </div>
+          <Button variant="secondary" disabled={reportMutation.isPending} onClick={() => reportMutation.mutate()}>
+            {reportMutation.isPending ? "Oluşturuluyor…" : "İstatistik Raporu İndir (PDF)"}
+          </Button>
+          {reportError && <span className="text-xs text-red-600">{reportError}</span>}
+        </div>
       </div>
 
       {statsQuery.isLoading && (
@@ -59,6 +94,12 @@ export function AdminDashboardPage() {
             hint="Görseli veya uyumluluk bilgisi olmayan satıştaki ürünler"
             to="/admin/urunler"
           />
+          <StatTile
+            label="Süren Toplu Alımlar"
+            value={statsQuery.data.acquisitionBatchesInProgress}
+            hint="Satıştaki parçası kalan toplu alımlar"
+            to="/admin/toplu-alimlar"
+          />
         </div>
       )}
 
@@ -69,7 +110,7 @@ export function AdminDashboardPage() {
             to="/admin/urunler"
             className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white shadow-sm p-5 transition-shadow hover:shadow-md"
           >
-            <span className="text-sm font-medium text-slate-900">Ürünler</span>
+            <span className="text-sm font-medium text-slate-900">Ürün Yönetimi</span>
             <span className="text-xs text-slate-500">Parça ekle, düzenle, gizle</span>
           </Link>
           <Link
@@ -92,6 +133,13 @@ export function AdminDashboardPage() {
           >
             <span className="text-sm font-medium text-slate-900">Araç Modelleri</span>
             <span className="text-xs text-slate-500">Model ekle, düzenle, sil</span>
+          </Link>
+          <Link
+            to="/admin/toplu-alimlar"
+            className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white shadow-sm p-5 transition-shadow hover:shadow-md"
+          >
+            <span className="text-sm font-medium text-slate-900">Toplu Alımlar</span>
+            <span className="text-xs text-slate-500">Sigorta/hasarlı araç lotu maliyeti gir</span>
           </Link>
         </div>
       </div>

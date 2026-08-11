@@ -22,14 +22,16 @@ public class ProductsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> GetProducts([FromQuery] ProductListQuery query, CancellationToken cancellationToken)
     {
-        var result = await _productService.GetProductsAsync(query, cancellationToken);
+        var isAdmin = User.IsInRole(Roles.Administrator);
+        var result = await _productService.GetProductsAsync(query, isAdmin, cancellationToken);
         return Ok(result);
     }
 
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetProductById(Guid id, CancellationToken cancellationToken)
     {
-        var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+        var isAdmin = User.IsInRole(Roles.Administrator);
+        var product = await _productService.GetProductByIdAsync(id, isAdmin, cancellationToken);
         return product is null ? NotFound() : Ok(product);
     }
 
@@ -44,6 +46,8 @@ public class ProductsController : ControllerBase
             ProductOperationStatus.InvalidCategory => BadRequest(new { error = result.Error }),
             ProductOperationStatus.InvalidVehicleModel => BadRequest(new { error = result.Error }),
             ProductOperationStatus.InvalidPrice => BadRequest(new { error = result.Error }),
+            ProductOperationStatus.InvalidAcquisitionBatch => BadRequest(new { error = result.Error }),
+            ProductOperationStatus.InvalidStatus => BadRequest(new { error = result.Error }),
             _ => BadRequest()
         };
     }
@@ -60,6 +64,7 @@ public class ProductsController : ControllerBase
             ProductOperationStatus.InvalidCategory => BadRequest(new { error = result.Error }),
             ProductOperationStatus.InvalidVehicleModel => BadRequest(new { error = result.Error }),
             ProductOperationStatus.InvalidPrice => BadRequest(new { error = result.Error }),
+            ProductOperationStatus.InvalidAcquisitionBatch => BadRequest(new { error = result.Error }),
             _ => BadRequest()
         };
     }
@@ -73,6 +78,35 @@ public class ProductsController : ControllerBase
         {
             ProductOperationStatus.Success => NoContent(),
             ProductOperationStatus.NotFound => NotFound(),
+            _ => BadRequest()
+        };
+    }
+
+    [HttpPatch("{id:guid}/restore")]
+    [Authorize(Roles = Roles.Administrator)]
+    public async Task<IActionResult> RestoreProduct(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _productService.RestoreProductAsync(id, cancellationToken);
+        return result.Status switch
+        {
+            ProductOperationStatus.Success => NoContent(),
+            ProductOperationStatus.NotFound => NotFound(),
+            ProductOperationStatus.InvalidStatus => Conflict(new { error = result.Error }),
+            _ => BadRequest()
+        };
+    }
+
+    [HttpPatch("{id:guid}/sell")]
+    [Authorize(Roles = Roles.Administrator)]
+    public async Task<IActionResult> MarkProductSold(Guid id, MarkProductSoldRequest request, CancellationToken cancellationToken)
+    {
+        var result = await _productService.MarkProductSoldAsync(id, request, cancellationToken);
+        return result.Status switch
+        {
+            ProductOperationStatus.Success => Ok(result.Product),
+            ProductOperationStatus.NotFound => NotFound(),
+            ProductOperationStatus.InvalidPrice => BadRequest(new { error = result.Error }),
+            ProductOperationStatus.InvalidStatus => Conflict(new { error = result.Error }),
             _ => BadRequest()
         };
     }
@@ -117,7 +151,7 @@ public class ProductsController : ControllerBase
     [Authorize(Roles = Roles.Administrator)]
     public async Task<IActionResult> DeleteProductImage(Guid id, Guid imageId, CancellationToken cancellationToken)
     {
-        var product = await _productService.GetProductByIdAsync(id, cancellationToken);
+        var product = await _productService.GetProductByIdAsync(id, isAdmin: true, cancellationToken);
         var imageUrl = product?.Images.FirstOrDefault(i => i.Id == imageId)?.ImageUrl;
 
         var result = await _productService.DeleteProductImageAsync(id, imageId, cancellationToken);

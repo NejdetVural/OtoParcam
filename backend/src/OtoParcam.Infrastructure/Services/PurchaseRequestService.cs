@@ -59,6 +59,16 @@ public class PurchaseRequestService : IPurchaseRequestService
             return PurchaseRequestResult.ProductNotAvailable("One or more specified products are not currently in stock.");
         }
 
+        var hasActiveRequestForProduct = await _dbContext.PurchaseRequestItems
+            .AnyAsync(i => productIds.Contains(i.ProductId)
+                    && i.PurchaseRequest.ApplicationUserId == userId
+                    && (i.PurchaseRequest.Status == PurchaseRequestStatus.Pending || i.PurchaseRequest.Status == PurchaseRequestStatus.WaitingForCustomerConfirmation),
+                cancellationToken);
+        if (hasActiveRequestForProduct)
+        {
+            return PurchaseRequestResult.ProductAlreadyRequested("You already have an active purchase request for one or more of the specified products.");
+        }
+
         var user = await _dbContext.Users.FirstAsync(u => u.Id == userId, cancellationToken);
 
         var purchaseRequest = new PurchaseRequest
@@ -121,10 +131,18 @@ public class PurchaseRequestService : IPurchaseRequestService
             return PurchaseRequestResult.InvalidTransition("Only pending or awaiting-confirmation purchase requests can be confirmed.");
         }
 
+        if (purchaseRequest.Items.Any(i => i.Product.Status != ProductStatus.Available))
+        {
+            return PurchaseRequestResult.ProductNotAvailable("One or more products in this request are no longer available — another purchase request may have already claimed them.");
+        }
+
         purchaseRequest.Status = PurchaseRequestStatus.Approved;
+        var soldAt = DateTime.UtcNow;
         foreach (var item in purchaseRequest.Items)
         {
             item.Product.Status = ProductStatus.Sold;
+            item.Product.SoldPrice = item.NegotiatedPrice ?? item.OriginalPrice;
+            item.Product.SoldAt = soldAt;
         }
 
         await _dbContext.SaveChangesAsync(cancellationToken);
