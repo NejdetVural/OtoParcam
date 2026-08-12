@@ -6,6 +6,7 @@ export interface RegisterRequest {
   email: string;
   phoneNumber: string;
   password: string;
+  privacyPolicyAccepted: boolean;
 }
 
 export interface LoginRequest {
@@ -25,4 +26,18 @@ export async function register(request: RegisterRequest): Promise<void> {
 export async function login(request: LoginRequest): Promise<LoginResponse> {
   const { data } = await apiClient.post<LoginResponse>("/auth/login", request);
   return data;
+}
+
+export async function forgotPassword(email: string): Promise<void> {
+  await apiClient.post("/auth/forgot-password", { email });
+}
+
+export interface ResetPasswordRequest {
+  userId: string;
+  token: string;
+  newPassword: string;
+}
+
+export async function resetPassword(request: ResetPasswordRequest): Promise<void> {
+  await apiClient.post("/auth/reset-password", request);
 }

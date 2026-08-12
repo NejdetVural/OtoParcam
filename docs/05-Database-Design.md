@@ -2,13 +2,18 @@
 
 ## Database Design Report (DDR)
 
-**Version:** 1.5
+**Version:** 1.6
 
 **Author:** Nejdet Vural
 
 **Date:** 20.07.2026
 
 ---
+
+## Changelog (v1.5 → v1.6)
+
+- **Added `ApplicationUser.PrivacyPolicyAcceptedAt` (`DATETIME2`, nullable)** — see §6.8. Set at registration once
+  `privacyPolicyAccepted: true` is required in the request (BR-80); NULL for pre-existing accounts.
 
 ## Changelog (v1.4 → v1.5)
 
@@ -776,6 +781,7 @@ Authorization is handled through ASP.NET Core Identity Roles rather than separat
 | Id        | UNIQUEIDENTIFIER                     | No       | Primary key.           |
 | FirstName | NVARCHAR(100)             | No       | User first name.       |
 | LastName  | NVARCHAR(100)             | No       | User last name.        |
+| PrivacyPolicyAcceptedAt | DATETIME2   | Yes      | When the user accepted the Privacy Policy at registration (BR-80). NULL for accounts created before this rule existed. |
 | CreatedAt | DATETIME2 | No       | Account creation date. |
 | UpdatedAt | DATETIME2 | No       | Last profile update.   |
 

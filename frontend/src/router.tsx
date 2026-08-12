@@ -6,6 +6,8 @@ import { HomePage } from "./pages/HomePage";
 import { ProductDetailPage } from "./pages/ProductDetailPage";
 import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
+import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
+import { ResetPasswordPage } from "./pages/ResetPasswordPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { FavoritesPage } from "./pages/FavoritesPage";
 import { PurchaseRequestsPage } from "./pages/PurchaseRequestsPage";
@@ -17,6 +19,8 @@ import { AdminCategoriesPage } from "./pages/AdminCategoriesPage";
 import { AdminVehicleBrandsPage } from "./pages/AdminVehicleBrandsPage";
 import { AdminVehicleModelsPage } from "./pages/AdminVehicleModelsPage";
 import { AdminAcquisitionBatchesPage } from "./pages/AdminAcquisitionBatchesPage";
+import { AdminUsersPage } from "./pages/AdminUsersPage";
+import { PrivacyPolicyPage } from "./pages/PrivacyPolicyPage";
 import { NotFoundPage } from "./pages/NotFoundPage";
 
 export const router = createBrowserRouter([
@@ -28,6 +32,9 @@ export const router = createBrowserRouter([
       { path: "urunler/:id", element: <ProductDetailPage /> },
       { path: "giris", element: <LoginPage /> },
       { path: "kayit", element: <RegisterPage /> },
+      { path: "sifremi-unuttum", element: <ForgotPasswordPage /> },
+      { path: "sifre-sifirla", element: <ResetPasswordPage /> },
+      { path: "gizlilik-politikasi", element: <PrivacyPolicyPage /> },
       {
         element: <ProtectedRoute requiredRole={Roles.Customer} />,
         children: [
@@ -51,6 +58,7 @@ export const router = createBrowserRouter([
           { path: "admin/markalar", element: <AdminVehicleBrandsPage /> },
           { path: "admin/modeller", element: <AdminVehicleModelsPage /> },
           { path: "admin/toplu-alimlar", element: <AdminAcquisitionBatchesPage /> },
+          { path: "admin/musteriler", element: <AdminUsersPage /> },
         ],
       },
       { path: "*", element: <NotFoundPage /> },

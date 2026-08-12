@@ -11,6 +11,13 @@ const TRANSLATION_RULES: [RegExp, string][] = [
   [/not confirmed/i, "E-posta adresiniz henüz onaylanmadı."],
   [/already have an active purchase request/i, "Bu ürün için zaten aktif bir talebiniz var."],
   [/no longer available.*another purchase request/i, "Bu üründe artık stok yok — başka bir talep tarafından alınmış olabilir."],
+  [/accept the privacy policy/i, "Kayıt olmak için Gizlilik Politikasını kabul etmelisiniz."],
+  [/invalid password reset request/i, "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."],
+  [/invalid token/i, "Şifre sıfırlama bağlantısı geçersiz veya süresi dolmuş."],
+  [/already an administrator/i, "Bu kullanıcı zaten yönetici."],
+  [/is not an administrator/i, "Bu kullanıcı zaten yönetici değil."],
+  [/cannot remove your own administrator role/i, "Kendi yöneticilik yetkinizi kaldıramazsınız."],
+  [/last remaining administrator/i, "Son yönetici hesabının yetkisi kaldırılamaz."],
 ];
 
 function translate(message: string): string {

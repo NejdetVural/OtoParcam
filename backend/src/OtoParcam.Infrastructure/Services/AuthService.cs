@@ -28,6 +28,11 @@ public class AuthService : IAuthService
 
     public async Task<RegisterResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
+        if (!request.PrivacyPolicyAccepted)
+        {
+            return RegisterResult.Failure(new[] { "You must accept the privacy policy to register." });
+        }
+
         var phoneTaken = await _userManager.Users.AnyAsync(u => u.PhoneNumber == request.PhoneNumber, cancellationToken);
         if (phoneTaken)
         {
@@ -40,7 +45,8 @@ public class AuthService : IAuthService
             Email = request.Email,
             PhoneNumber = request.PhoneNumber,
             FirstName = request.FirstName,
-            LastName = request.LastName
+            LastName = request.LastName,
+            PrivacyPolicyAcceptedAt = DateTime.UtcNow
         };
 
         var createResult = await _userManager.CreateAsync(user, request.Password);
@@ -105,6 +111,47 @@ public class AuthService : IAuthService
         return result.Succeeded
             ? ConfirmEmailResult.Success()
             : ConfirmEmailResult.Failure(result.Errors.Select(e => e.Description));
+    }
+
+    public async Task RequestPasswordResetAsync(ForgotPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+        {
+            // Don't reveal whether the account exists.
+            return;
+        }
+
+        var token = await _userManager.GeneratePasswordResetTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+
+        _logger.LogInformation(
+            "Password reset link for {Email}: POST /api/v1/auth/reset-password with userId={UserId}&token={Token}",
+            user.Email, user.Id, encodedToken);
+    }
+
+    public async Task<ResetPasswordResult> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByIdAsync(request.UserId.ToString());
+        if (user is null)
+        {
+            return ResetPasswordResult.Failure(new[] { "Invalid password reset request." });
+        }
+
+        string decodedToken;
+        try
+        {
+            decodedToken = Encoding.UTF8.GetString(WebEncoders.Base64UrlDecode(request.Token));
+        }
+        catch (FormatException)
+        {
+            return ResetPasswordResult.Failure(new[] { "Invalid password reset request." });
+        }
+
+        var result = await _userManager.ResetPasswordAsync(user, decodedToken, request.NewPassword);
+        return result.Succeeded
+            ? ResetPasswordResult.Success()
+            : ResetPasswordResult.Failure(result.Errors.Select(e => e.Description));
     }
 
     private (string Token, DateTime ExpiresAtUtc) GenerateJwt(ApplicationUser user, IList<string> roles)

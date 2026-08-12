@@ -15,6 +15,7 @@ export function RegisterPage() {
     phoneDigits: "",
     password: "",
   });
+  const [privacyPolicyAccepted, setPrivacyPolicyAccepted] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
@@ -34,6 +35,7 @@ export function RegisterPage() {
         email: form.email,
         phoneNumber: formatPhoneNumber(form.phoneDigits),
         password: form.password,
+        privacyPolicyAccepted,
       });
       setIsDone(true);
     } catch (error) {
@@ -96,6 +98,21 @@ export function RegisterPage() {
         <p className="-mt-3 text-xs text-slate-500">
           En az 6 karakter, bir büyük harf, bir küçük harf, bir rakam ve bir özel karakter içermelidir.
         </p>
+        <label className="flex items-start gap-2 text-sm text-slate-600">
+          <input
+            type="checkbox"
+            checked={privacyPolicyAccepted}
+            onChange={(e) => setPrivacyPolicyAccepted(e.target.checked)}
+            required
+            className="mt-0.5 h-4 w-4 rounded border-slate-300 text-slate-900 focus:ring-slate-400"
+          />
+          <span>
+            <Link to="/gizlilik-politikasi" target="_blank" className="font-medium text-slate-900 underline">
+              Gizlilik Politikasını
+            </Link>{" "}
+            okudum ve kabul ediyorum.
+          </span>
+        </label>
         {errors.length > 0 && (
           <ul className="flex flex-col gap-1 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
             {errors.map((message) => (
@@ -103,7 +120,7 @@ export function RegisterPage() {
             ))}
           </ul>
         )}
-        <Button type="submit" disabled={isSubmitting}>
+        <Button type="submit" disabled={isSubmitting || !privacyPolicyAccepted}>
           {isSubmitting ? "Kayıt oluşturuluyor…" : "Kayıt Ol"}
         </Button>
       </form>

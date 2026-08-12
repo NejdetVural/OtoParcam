@@ -18,6 +18,9 @@ public class RegisterRequest
 
     [Required, MinLength(6)]
     public string Password { get; set; } = string.Empty;
+
+    [Required]
+    public bool PrivacyPolicyAccepted { get; set; }
 }
 
 public class LoginRequest
@@ -57,4 +60,31 @@ public class ConfirmEmailResult
 
     public static ConfirmEmailResult Success() => new() { Succeeded = true };
     public static ConfirmEmailResult Failure(IEnumerable<string> errors) => new() { Succeeded = false, Errors = errors.ToArray() };
+}
+
+public class ForgotPasswordRequest
+{
+    [Required, EmailAddress]
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordRequest
+{
+    [Required]
+    public Guid UserId { get; set; }
+
+    [Required]
+    public string Token { get; set; } = string.Empty;
+
+    [Required, MinLength(6)]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class ResetPasswordResult
+{
+    public bool Succeeded { get; init; }
+    public IReadOnlyList<string> Errors { get; init; } = Array.Empty<string>();
+
+    public static ResetPasswordResult Success() => new() { Succeeded = true };
+    public static ResetPasswordResult Failure(IEnumerable<string> errors) => new() { Succeeded = false, Errors = errors.ToArray() };
 }

@@ -185,6 +185,10 @@ The following business rules define the business logic and constraints of the Ot
 
 **BR-68** Customer accounts shall require email verification before becoming active.
 
+**BR-80** Registration shall require explicit acceptance of the Privacy Policy; the system shall reject registration without it and record the acceptance timestamp (`ApplicationUser.PrivacyPolicyAcceptedAt`) as evidence of consent. Accounts created before this rule existed have no acceptance timestamp on record.
+
+**BR-81** A customer who has forgotten their password may request a password reset by email address. The system shall not reveal whether a given email address has a registered account (the response is identical whether or not one exists). A reset link is single-use and generated via ASP.NET Identity's password-reset token, which is tied to the account's security stamp and therefore invalidated by a prior successful reset.
+
 ---
 
 5.4 ## Order Rules

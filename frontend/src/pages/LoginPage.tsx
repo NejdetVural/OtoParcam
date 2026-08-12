@@ -51,6 +51,9 @@ export function LoginPage() {
           onChange={(e) => setPassword(e.target.value)}
           required
         />
+        <Link to="/sifremi-unuttum" className="-mt-2 self-end text-xs font-medium text-slate-500 hover:text-slate-900">
+          Şifremi unuttum
+        </Link>
         {errors.length > 0 && (
           <ul className="flex flex-col gap-1 rounded-lg border border-red-100 bg-red-50 p-3 text-sm text-red-700">
             {errors.map((message) => (

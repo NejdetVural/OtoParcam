@@ -86,7 +86,7 @@ export function AdminDashboardPage() {
       {statsQuery.data && (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <StatTile label="Toplam Ürün" value={statsQuery.data.totalProducts} to="/admin/urunler" />
-          <StatTile label="Toplam Müşteri" value={statsQuery.data.totalCustomers} />
+          <StatTile label="Toplam Müşteri" value={statsQuery.data.totalCustomers} to="/admin/musteriler" />
           <StatTile label="Bekleyen Talepler" value={statsQuery.data.pendingPurchaseRequests} to="/admin/talepler" />
           <StatTile
             label="İlgi Bekleyen Ürünler"
@@ -140,6 +140,19 @@ export function AdminDashboardPage() {
           >
             <span className="text-sm font-medium text-slate-900">Toplu Alımlar</span>
             <span className="text-xs text-slate-500">Sigorta/hasarlı araç lotu maliyeti gir</span>
+          </Link>
+        </div>
+      </div>
+
+      <div>
+        <h2 className="mb-3 text-sm font-medium text-slate-700">Kullanıcı Yönetimi</h2>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <Link
+            to="/admin/musteriler"
+            className="flex flex-col gap-1 rounded-xl border border-slate-200 bg-white shadow-sm p-5 transition-shadow hover:shadow-md"
+          >
+            <span className="text-sm font-medium text-slate-900">Müşteriler</span>
+            <span className="text-xs text-slate-500">Kullanıcıları görüntüle, yöneticilik ata/kaldır</span>
           </Link>
         </div>
       </div>

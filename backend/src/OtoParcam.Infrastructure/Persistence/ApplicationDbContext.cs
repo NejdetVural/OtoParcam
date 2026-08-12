@@ -49,6 +49,22 @@ public class ApplicationDbContext : IdentityDbContext<ApplicationUser, IdentityR
             }
         }
 
+        // ApplicationUser has its own CreatedAt/UpdatedAt (it extends IdentityUser<Guid>, not BaseEntity,
+        // so it's excluded from the loop above) but needs the same auto-stamping.
+        foreach (var entry in ChangeTracker.Entries<ApplicationUser>())
+        {
+            switch (entry.State)
+            {
+                case EntityState.Added:
+                    entry.Entity.CreatedAt = now;
+                    entry.Entity.UpdatedAt = now;
+                    break;
+                case EntityState.Modified:
+                    entry.Entity.UpdatedAt = now;
+                    break;
+            }
+        }
+
         return base.SaveChangesAsync(cancellationToken);
     }
 }

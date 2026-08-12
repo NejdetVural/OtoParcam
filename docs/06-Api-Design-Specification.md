@@ -2,7 +2,7 @@
 
 ## API Design Specification
 
-Version 1.9
+Version 1.10
 
 Author Nejdet Vural
 
@@ -12,9 +12,19 @@ Date 17.07.2026
 
 ## Changelog
 
-- **Added rate limiting on `AuthController`** (`/auth/register`, `/auth/login`, `/auth/confirm-email`): 10 requests/minute
+- **`POST /auth/register` requires `privacyPolicyAccepted: true`** — rejected with `400` otherwise. The acceptance
+  timestamp is recorded on `ApplicationUser.PrivacyPolicyAcceptedAt` as evidence of consent. Added a public
+  `/gizlilik-politikasi` privacy-policy page (frontend only, not an API concern) linked from the registration form and
+  site footer. Per BR-80, added 2026-08-11.
+- **Added rate limiting on `AuthController`** (applies to every action on the controller, including `/auth/register`,
+  `/auth/login`, `/auth/confirm-email`, `/auth/forgot-password`, `/auth/reset-password`): 10 requests/minute
   per client IP, `429 Too Many Requests` beyond that. Defensive hardening after a security review — slows down
   credential-stuffing/brute-force attempts. Scoped to auth only, not applied globally. Added 2026-08-11.
+- **Added `POST /auth/forgot-password` and `POST /auth/reset-password`** (BR-81, added 2026-08-12): password recovery
+  via ASP.NET Identity's built-in reset-token mechanism (no new DB column — the token is tied to the account's
+  security stamp). Like email confirmation, there's no real email sending yet — `AuthService` only logs the reset
+  link server-side; see the auth-known-gaps note. Forgot Password always returns `200` regardless of whether the
+  email exists, to avoid account enumeration.
 - **Added `?period=` to `GET /admin/reports/statistics`** (`AllTime` (default) | `Daily` | `Weekly` | `Monthly`) — scopes
   the Sales Performance section (and its revenue/cost/profit totals) to a rolling window ending now, based on the new
   `Product.SoldAt` timestamp (set independently of `UpdatedAt`, alongside `SoldPrice`, on both sale paths — approving a
@@ -116,7 +126,8 @@ The API follows the conventions below:
 POST /auth/register
 ```
 
-Creates a new customer account.
+Creates a new customer account. Requires `privacyPolicyAccepted: true` in the body (BR-80) — rejected with `400` if
+omitted or `false`. The acceptance moment is recorded on the account as evidence of consent.
 
 Authentication Required
 
@@ -152,6 +163,36 @@ Authentication Required
 
 ---
 
+## Forgot Password
+
+```
+POST /auth/forgot-password
+```
+
+Requests a password reset link for the account matching the given `email`, if one exists (BR-81). Always returns
+`200 OK` regardless of whether the email is registered, so the response cannot be used to enumerate accounts.
+
+Authentication Required
+
+- No
+
+---
+
+## Reset Password
+
+```
+POST /auth/reset-password
+```
+
+Sets a new password using the `userId`/`token` pair issued by Forgot Password, together with `newPassword`.
+Rejected with `400` if the token is invalid/expired or the new password fails the password policy.
+
+Authentication Required
+
+- No
+
+---
+
 
 # 3. Products
 
@@ -170,7 +211,7 @@ Supports filtering, searching, and sorting using optional query parameters.
 | `categoryId` | UUID | Filter by category |
 | `vehicleBrandId` | UUID | Filter by vehicle brand |
 | `vehicleModelId` | UUID | Filter by vehicle model (source or compatible) |
-| `keyword` | string | Searches product descriptions |
+| `keyword` | string | Searches product description, source vehicle brand name, source vehicle model name, and category name |
 | `color` | integer | Filter by color |
 | `status` | integer | Filter by status (`1`=Available, `2`=Sold, `3`=Hidden). **Administrator callers only** — see below. |
 | `page` | integer | Page number (default: 1) |
@@ -782,7 +823,7 @@ Authentication Required
 | 403 Forbidden | Access denied |
 | 404 Not Found | Resource not found |
 | 409 Conflict | Duplicate resource |
-| 429 Too Many Requests | Rate limit exceeded — currently only on `/auth/register`, `/auth/login`, `/auth/confirm-email` (10 requests/minute per client IP), added 2026-08-11 |
+| 429 Too Many Requests | Rate limit exceeded — currently only on `AuthController` (`/auth/register`, `/auth/login`, `/auth/confirm-email`, `/auth/forgot-password`, `/auth/reset-password`) (10 requests/minute per client IP), added 2026-08-11 |
 | 500 Internal Server Error | Unexpected server error |
 
 ---

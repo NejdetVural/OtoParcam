@@ -48,6 +48,7 @@ public static class DependencyInjection
             services.AddScoped<IFavoriteService, FavoriteService>();
             services.AddScoped<IPurchaseRequestService, PurchaseRequestService>();
             services.AddScoped<IUserProfileService, UserProfileService>();
+            services.AddScoped<IAdminUserService, AdminUserService>();
             services.AddScoped<IDashboardService, DashboardService>();
             services.AddScoped<IReportService, ReportService>();
             services.AddScoped<IAcquisitionBatchService, AcquisitionBatchService>();

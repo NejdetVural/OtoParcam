@@ -51,7 +51,12 @@ public class ProductService : IProductService
 
         if (!string.IsNullOrWhiteSpace(query.Keyword))
         {
-            products = products.Where(p => p.Description != null && p.Description.Contains(query.Keyword));
+            var keyword = query.Keyword;
+            products = products.Where(p =>
+                (p.Description != null && p.Description.Contains(keyword)) ||
+                p.SourceVehicleModel.VehicleBrand.Name.Contains(keyword) ||
+                p.SourceVehicleModel.Name.Contains(keyword) ||
+                p.Category.Name.Contains(keyword));
         }
 
         if (query.Color.HasValue)
