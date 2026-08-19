@@ -56,6 +56,32 @@ public class AcquisitionBatchesController : ControllerBase
         };
     }
 
+    [HttpPatch("{id:guid}/close")]
+    public async Task<IActionResult> CloseBatch(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _acquisitionBatchService.CloseBatchAsync(id, cancellationToken);
+        return result.Status switch
+        {
+            AcquisitionBatchOperationStatus.Success => Ok(result.Batch),
+            AcquisitionBatchOperationStatus.NotFound => NotFound(),
+            AcquisitionBatchOperationStatus.Conflict => Conflict(new { error = result.Error }),
+            _ => BadRequest()
+        };
+    }
+
+    [HttpPatch("{id:guid}/reopen")]
+    public async Task<IActionResult> ReopenBatch(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await _acquisitionBatchService.ReopenBatchAsync(id, cancellationToken);
+        return result.Status switch
+        {
+            AcquisitionBatchOperationStatus.Success => Ok(result.Batch),
+            AcquisitionBatchOperationStatus.NotFound => NotFound(),
+            AcquisitionBatchOperationStatus.Conflict => Conflict(new { error = result.Error }),
+            _ => BadRequest()
+        };
+    }
+
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> DeleteBatch(Guid id, CancellationToken cancellationToken)
     {

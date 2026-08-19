@@ -23,6 +23,14 @@ export async function register(request: RegisterRequest): Promise<void> {
   await apiClient.post("/auth/register", request);
 }
 
+export async function confirmEmail(userId: string, token: string): Promise<void> {
+  await apiClient.get("/auth/confirm-email", { params: { userId, token } });
+}
+
+export async function resendConfirmationEmail(email: string): Promise<void> {
+  await apiClient.post("/auth/resend-confirmation", { email });
+}
+
 export async function login(request: LoginRequest): Promise<LoginResponse> {
   const { data } = await apiClient.post<LoginResponse>("/auth/login", request);
   return data;

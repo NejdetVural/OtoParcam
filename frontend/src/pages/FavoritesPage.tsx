@@ -35,7 +35,7 @@ export function FavoritesPage() {
             </Link>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
             {favoritesQuery.data.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}

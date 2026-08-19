@@ -32,20 +32,6 @@ const colorSwatchHex: Record<ProductColor, string> = {
   [ProductColor.Other]: "#94a3b8",
 };
 
-function SidebarLink({ active, onClick, children }: { active: boolean; onClick: () => void; children: string }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`block w-full rounded-lg px-2.5 py-1.5 text-left text-sm transition-colors ${
-        active ? "bg-brand-800 font-semibold text-white" : "text-slate-700 hover:bg-slate-100"
-      }`}
-    >
-      {children}
-    </button>
-  );
-}
-
 export function HomePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
@@ -61,6 +47,8 @@ export function HomePage() {
   const onlyAvailable = isAdmin && searchParams.get("onlyAvailable") === "1";
 
   const [searchInput, setSearchInput] = useState(keyword ?? "");
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const activeFilterCount = [categoryId, vehicleBrandId, vehicleModelId, color].filter(Boolean).length;
 
   useEffect(() => {
     setSearchInput(keyword ?? "");
@@ -118,33 +106,66 @@ export function HomePage() {
 
   return (
     <div className="flex flex-col gap-5 md:flex-row md:items-start">
-      <aside className="flex flex-col gap-0 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm md:w-60 md:shrink-0">
+      <button
+        type="button"
+        onClick={() => setFiltersOpen((open) => !open)}
+        aria-expanded={filtersOpen}
+        className="flex items-center justify-between rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm font-medium text-slate-900 shadow-sm md:hidden"
+      >
+        <span className="flex items-center gap-2">
+          Filtreler
+          {activeFilterCount > 0 && (
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-brand-800 text-xs text-white">
+              {activeFilterCount}
+            </span>
+          )}
+        </span>
+        <svg
+          viewBox="0 0 20 20"
+          className={`h-4 w-4 text-slate-500 transition-transform ${filtersOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M5 7.5l5 5 5-5" />
+        </svg>
+      </button>
+
+      <aside
+        className={`${filtersOpen ? "flex" : "hidden"} flex-col gap-0 overflow-hidden rounded-xl border border-slate-300 bg-white shadow-sm md:flex md:w-60 md:shrink-0`}
+      >
         <div>
           <h3 className="bg-brand-800 px-3.5 py-2.5 text-xs font-bold uppercase tracking-wide text-white">Kategoriler</h3>
-          <div className="flex flex-col gap-0.5 p-1.5">
-            <SidebarLink active={!categoryId} onClick={() => updateParam("categoryId", "")}>
-              Tümü
-            </SidebarLink>
-            {categoriesQuery.data?.map((category) => (
-              <SidebarLink key={category.id} active={categoryId === category.id} onClick={() => updateParam("categoryId", category.id)}>
-                {category.name}
-              </SidebarLink>
-            ))}
+          <div className="p-3.5">
+            <select
+              value={categoryId ?? ""}
+              onChange={(e) => updateParam("categoryId", e.target.value)}
+              className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+            >
+              <option value="">Tüm kategoriler</option>
+              {categoriesQuery.data?.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
+                </option>
+              ))}
+            </select>
           </div>
         </div>
 
         <div className="border-t border-slate-100 p-3.5">
           <span className="mb-2 block text-xs font-bold text-slate-600">Marka</span>
-          <div className="flex flex-col gap-0.5">
-            <SidebarLink active={!vehicleBrandId} onClick={() => handleBrandChange("")}>
-              Tümü
-            </SidebarLink>
+          <select
+            value={vehicleBrandId ?? ""}
+            onChange={(e) => handleBrandChange(e.target.value)}
+            className="w-full rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
+          >
+            <option value="">Tüm markalar</option>
             {vehicleBrandsQuery.data?.map((brand) => (
-              <SidebarLink key={brand.id} active={vehicleBrandId === brand.id} onClick={() => handleBrandChange(brand.id)}>
+              <option key={brand.id} value={brand.id}>
                 {brand.name}
-              </SidebarLink>
+              </option>
             ))}
-          </div>
+          </select>
 
           {vehicleBrandId && (
             <select
@@ -248,7 +269,7 @@ export function HomePage() {
             {productsQuery.data.items.length === 0 ? (
               <p className="py-16 text-center text-sm text-slate-500">Bu kriterlere uygun ürün bulunamadı.</p>
             ) : (
-              <div className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fill,minmax(220px,1fr))]">
+              <div className="grid grid-cols-2 gap-4 sm:grid-cols-[repeat(auto-fit,minmax(220px,1fr))]">
                 {productsQuery.data.items.map((product) => (
                   <ProductCard key={product.id} product={product} />
                 ))}

@@ -1,9 +1,11 @@
 using System.Threading.RateLimiting;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using OtoParcam.API.Services;
 using OtoParcam.Infrastructure;
 using OtoParcam.Infrastructure.Identity;
+using OtoParcam.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,7 +22,12 @@ builder.Services.AddCors(options =>
 {
     options.AddPolicy(FrontendCorsPolicy, policy =>
     {
-        policy.WithOrigins("http://localhost:5173")
+        // "http://localhost:5173" is always allowed (the default dev origin on this machine) even when
+        // App:FrontendBaseUrl is overridden to a LAN IP for testing from another device on the network —
+        // otherwise switching one config value locks out whichever origin isn't currently configured.
+        var frontendBaseUrl = builder.Configuration["App:FrontendBaseUrl"] ?? "http://localhost:5173";
+        var origins = new[] { "http://localhost:5173", frontendBaseUrl }.Distinct().ToArray();
+        policy.WithOrigins(origins)
             .AllowAnyHeader()
             .AllowAnyMethod();
     });
@@ -88,6 +95,14 @@ else
 
 using (var scope = app.Services.CreateScope())
 {
+    // Opt-in only (AutoMigrate=true, set by docker-compose) — local/LocalDB dev keeps the existing
+    // manual `dotnet ef database update` workflow (see CLAUDE.md) unchanged. Must run before role
+    // seeding, which needs the Identity tables to already exist.
+    if (builder.Configuration.GetValue<bool>("AutoMigrate"))
+    {
+        await scope.ServiceProvider.GetRequiredService<ApplicationDbContext>().Database.MigrateAsync();
+    }
+
     await RoleSeeder.SeedRolesAsync(scope.ServiceProvider);
 }
 

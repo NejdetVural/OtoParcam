@@ -568,11 +568,14 @@ export function AdminProductFormPage() {
                 className="rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm focus:border-slate-400 focus:outline-none focus:ring-1 focus:ring-slate-400"
               >
                 <option value="">Yok — bu parça ayrı satın alındı</option>
-                {acquisitionBatchesQuery.data?.map((batch) => (
-                  <option key={batch.id} value={batch.id}>
-                    {batch.source} ({batch.partCount} parça)
-                  </option>
-                ))}
+                {acquisitionBatchesQuery.data
+                  ?.filter((batch) => batch.closedAt === null || batch.id === form.acquisitionBatchId)
+                  .map((batch) => (
+                    <option key={batch.id} value={batch.id}>
+                      {batch.source} ({batch.partCount} parça)
+                      {batch.closedAt !== null ? " — Kapalı" : ""}
+                    </option>
+                  ))}
               </select>
               <span className="text-xs text-slate-500">
                 Birlikte satın alınan (örn. sigortadan hasarlı bir araç) parçalar için seçin — maliyet, alıma bağlı toplam

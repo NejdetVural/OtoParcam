@@ -52,6 +52,13 @@ public class AuthController : ControllerBase
         return Ok();
     }
 
+    [HttpPost("resend-confirmation")]
+    public async Task<IActionResult> ResendConfirmation(ResendConfirmationRequest request, CancellationToken cancellationToken)
+    {
+        await _authService.ResendConfirmationEmailAsync(request, cancellationToken);
+        return Ok();
+    }
+
     [HttpPost("forgot-password")]
     public async Task<IActionResult> ForgotPassword(ForgotPasswordRequest request, CancellationToken cancellationToken)
     {

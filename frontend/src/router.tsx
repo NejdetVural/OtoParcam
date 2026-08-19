@@ -8,6 +8,7 @@ import { LoginPage } from "./pages/LoginPage";
 import { RegisterPage } from "./pages/RegisterPage";
 import { ForgotPasswordPage } from "./pages/ForgotPasswordPage";
 import { ResetPasswordPage } from "./pages/ResetPasswordPage";
+import { ConfirmEmailPage } from "./pages/ConfirmEmailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { FavoritesPage } from "./pages/FavoritesPage";
 import { PurchaseRequestsPage } from "./pages/PurchaseRequestsPage";
@@ -34,6 +35,7 @@ export const router = createBrowserRouter([
       { path: "kayit", element: <RegisterPage /> },
       { path: "sifremi-unuttum", element: <ForgotPasswordPage /> },
       { path: "sifre-sifirla", element: <ResetPasswordPage /> },
+      { path: "onay", element: <ConfirmEmailPage /> },
       { path: "gizlilik-politikasi", element: <PrivacyPolicyPage /> },
       {
         element: <ProtectedRoute requiredRole={Roles.Customer} />,

@@ -158,12 +158,45 @@ export function ProductDetailPage() {
 
           <div className="flex flex-wrap gap-2">
             <Badge>{productColorLabels[product.color]}</Badge>
-            {product.side !== null && <Badge>{productSideLabels[product.side]}</Badge>}
-            {product.position !== null && <Badge>{productPositionLabels[product.position]}</Badge>}
             {product.status !== ProductStatus.Available && <Badge tone="warning">{productStatusLabels[product.status]}</Badge>}
           </div>
 
           {product.description && <p className="text-sm leading-relaxed text-slate-600">{product.description}</p>}
+
+          <div className="rounded-xl border border-slate-200 bg-white shadow-sm p-4">
+            <h2 className="text-sm font-medium text-slate-900">Ürün Bilgileri</h2>
+            <dl className="mt-3 grid grid-cols-2 gap-x-4 gap-y-3 text-sm sm:grid-cols-3">
+              <div>
+                <dt className="text-xs text-slate-500">Kategori</dt>
+                <dd className="text-slate-900">{product.categoryName}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Araç</dt>
+                <dd className="text-slate-900">
+                  {product.vehicleBrandName} {product.vehicleModelName}
+                  {product.variant ? ` (${product.variant})` : ""}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Üretim Yılı</dt>
+                <dd className="text-slate-900">
+                  {product.startYear}-{product.endYear}
+                </dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Renk</dt>
+                <dd className="text-slate-900">{productColorLabels[product.color]}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Taraf</dt>
+                <dd className="text-slate-900">{product.side !== null ? productSideLabels[product.side] : "—"}</dd>
+              </div>
+              <div>
+                <dt className="text-xs text-slate-500">Konum</dt>
+                <dd className="text-slate-900">{product.position !== null ? productPositionLabels[product.position] : "—"}</dd>
+              </div>
+            </dl>
+          </div>
 
           <div className="flex flex-col gap-2">
             {isAdmin ? null : product.status === ProductStatus.Available ? (

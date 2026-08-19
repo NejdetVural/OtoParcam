@@ -1,14 +1,17 @@
 import { useMemo, useState, type FormEvent } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  closeAcquisitionBatch,
   createAcquisitionBatch,
   deleteAcquisitionBatch,
   getAcquisitionBatches,
+  reopenAcquisitionBatch,
   updateAcquisitionBatch,
   type AcquisitionBatchDto,
   type AcquisitionBatchRequest,
 } from "../api/acquisitionBatches";
 import { extractErrorMessages } from "../api/errors";
+import { Badge } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { ConfirmButton } from "../components/ui/ConfirmButton";
 import { Input } from "../components/ui/Input";
@@ -75,6 +78,26 @@ function BatchCard({ batch }: { batch: AcquisitionBatchDto }) {
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["acquisition-batches"] }),
     onError: (err) => setError(extractErrorMessages(err)[0]),
   });
+
+  const closeMutation = useMutation({
+    mutationFn: () => closeAcquisitionBatch(batch.id),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["acquisition-batches"] });
+    },
+    onError: (err) => setError(extractErrorMessages(err)[0]),
+  });
+
+  const reopenMutation = useMutation({
+    mutationFn: () => reopenAcquisitionBatch(batch.id),
+    onSuccess: () => {
+      setError(null);
+      queryClient.invalidateQueries({ queryKey: ["acquisition-batches"] });
+    },
+    onError: (err) => setError(extractErrorMessages(err)[0]),
+  });
+
+  const isClosed = batch.closedAt !== null;
 
   if (editing) {
     return (
@@ -143,7 +166,10 @@ function BatchCard({ batch }: { batch: AcquisitionBatchDto }) {
     <li className="flex flex-col gap-4 rounded-xl border border-slate-200 bg-white shadow-sm p-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h3 className="text-sm font-medium text-slate-900">{batch.source}</h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-sm font-medium text-slate-900">{batch.source}</h3>
+            <Badge tone={isClosed ? "neutral" : "success"}>{isClosed ? "Kapalı" : "Açık"}</Badge>
+          </div>
           <p className="text-xs text-slate-500">
             {new Date(batch.purchaseDate).toLocaleDateString("tr-TR")} — Toplam {formatCurrency(batch.totalCost)}
           </p>
@@ -153,6 +179,19 @@ function BatchCard({ batch }: { batch: AcquisitionBatchDto }) {
           <Button variant="ghost" onClick={() => setEditing(true)}>
             Düzenle
           </Button>
+          {isClosed ? (
+            <Button variant="ghost" disabled={reopenMutation.isPending} onClick={() => reopenMutation.mutate()}>
+              Yeniden Aç
+            </Button>
+          ) : (
+            <ConfirmButton
+              label="Alımı Bitir"
+              confirmLabel="Evet, Bitir"
+              message={`"${batch.source}" alımı kapatılsın mı? Yeni ürün eklenemez, mevcut ürünler etkilenmez.`}
+              onConfirm={() => closeMutation.mutate()}
+              disabled={closeMutation.isPending}
+            />
+          )}
           <ConfirmButton
             label="Sil"
             confirmLabel="Evet, Sil"

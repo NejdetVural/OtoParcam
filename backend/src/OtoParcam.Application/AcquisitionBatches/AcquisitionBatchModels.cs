@@ -9,6 +9,7 @@ public class AcquisitionBatchDto
     public decimal TotalCost { get; set; }
     public DateTime PurchaseDate { get; set; }
     public string? Notes { get; set; }
+    public DateTime? ClosedAt { get; set; }
     public int PartCount { get; set; }
     public int AvailableCount { get; set; }
     public int SoldCount { get; set; }
@@ -65,6 +66,7 @@ public class AcquisitionBatchResult
     public static AcquisitionBatchResult Success(AcquisitionBatchDto batch) => new() { Status = AcquisitionBatchOperationStatus.Success, Batch = batch };
     public static AcquisitionBatchResult NotFound() => new() { Status = AcquisitionBatchOperationStatus.NotFound };
     public static AcquisitionBatchResult InvalidCost(string error) => new() { Status = AcquisitionBatchOperationStatus.InvalidCost, Error = error };
+    public static AcquisitionBatchResult Conflict(string error) => new() { Status = AcquisitionBatchOperationStatus.Conflict, Error = error };
 }
 
 public class AcquisitionBatchDeleteResult

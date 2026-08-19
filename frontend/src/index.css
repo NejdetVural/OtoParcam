@@ -24,5 +24,12 @@ body {
     radial-gradient(circle at 8% 0%, rgba(20, 48, 79, 0.07), transparent 55%),
     radial-gradient(circle at 100% 30%, rgba(20, 48, 79, 0.05), transparent 50%),
     repeating-linear-gradient(135deg, rgba(15, 35, 56, 0.035) 0 1px, transparent 1px 15px);
-  background-attachment: fixed;
+}
+
+/* background-attachment: fixed is notoriously buggy/janky on iOS Safari (repaint on every
+   scroll frame), so it's only applied on wider viewports where touch scroll perf isn't a concern. */
+@media (min-width: 1024px) {
+  .page-texture {
+    background-attachment: fixed;
+  }
 }

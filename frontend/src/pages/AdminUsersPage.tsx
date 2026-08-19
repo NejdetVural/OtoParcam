@@ -113,7 +113,7 @@ export function AdminUsersPage() {
           placeholder="Ad, e-posta veya telefon ara"
           value={keyword}
           onChange={(e) => setKeyword(e.target.value)}
-          className="w-64"
+          className="w-full sm:w-64"
         />
       </div>
 

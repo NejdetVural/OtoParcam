@@ -1,10 +1,14 @@
 import { useState, type FormEvent } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { resendConfirmationEmail } from "../api/auth";
 import { extractErrorMessages } from "../api/errors";
 import { formatPhoneNumber, normalizePhoneDigits } from "../lib/phone";
+import { useCountdown } from "../lib/useCountdown";
 import { Button } from "../components/ui/Button";
 import { Input } from "../components/ui/Input";
+
+const RESEND_COOLDOWN_SECONDS = 60;
 
 export function RegisterPage() {
   const { register } = useAuth();
@@ -19,6 +23,9 @@ export function RegisterPage() {
   const [errors, setErrors] = useState<string[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDone, setIsDone] = useState(false);
+  const { remaining: resendCooldown, start: startResendCooldown } = useCountdown();
+  const [isResending, setIsResending] = useState(false);
+  const [resendMessage, setResendMessage] = useState<string | null>(null);
 
   function updateField(field: "firstName" | "lastName" | "email" | "password", value: string) {
     setForm((prev) => ({ ...prev, [field]: value }));
@@ -38,10 +45,28 @@ export function RegisterPage() {
         privacyPolicyAccepted,
       });
       setIsDone(true);
+      startResendCooldown(RESEND_COOLDOWN_SECONDS);
     } catch (error) {
       setErrors(extractErrorMessages(error));
     } finally {
       setIsSubmitting(false);
+    }
+  }
+
+  async function handleResend() {
+    if (resendCooldown > 0 || isResending) {
+      return;
+    }
+    setIsResending(true);
+    setResendMessage(null);
+    try {
+      await resendConfirmationEmail(form.email);
+      setResendMessage("Onay bağlantısı yeniden gönderildi.");
+      startResendCooldown(RESEND_COOLDOWN_SECONDS);
+    } catch (error) {
+      setResendMessage(extractErrorMessages(error)[0] ?? "Gönderilemedi, tekrar deneyin.");
+    } finally {
+      setIsResending(false);
     }
   }
 
@@ -50,10 +75,25 @@ export function RegisterPage() {
       <div className="mx-auto max-w-sm rounded-xl border border-slate-200 bg-white shadow-sm p-6 text-center">
         <h1 className="text-lg font-semibold text-slate-900">Kaydınız oluşturuldu</h1>
         <p className="mt-2 text-sm text-slate-600">
-          Hesabınız oluşturuldu ancak giriş yapabilmeniz için e-posta onayı gerekiyor. Bu geliştirme ortamında
-          onay bağlantısı e-posta ile gönderilmiyor — sunucu konsol loglarından alınmalı veya bir yönetici
-          tarafından onaylanmalıdır.
+          Hesabınız oluşturuldu ancak giriş yapabilmeniz için e-posta onayı gerekiyor. Size gönderdiğimiz
+          onay bağlantısına tıklayarak hesabınızı aktifleştirebilirsiniz.
         </p>
+        <p className="mt-2 text-xs text-slate-500">
+          E-postayı bulamıyor musunuz? Spam/gereksiz klasörünü kontrol edin.
+        </p>
+        <Button
+          variant="secondary"
+          className="mt-4 w-full"
+          disabled={resendCooldown > 0 || isResending}
+          onClick={handleResend}
+        >
+          {isResending
+            ? "Gönderiliyor…"
+            : resendCooldown > 0
+              ? `Tekrar Gönder (${resendCooldown}s)`
+              : "Tekrar Gönder"}
+        </Button>
+        {resendMessage && <p className="mt-2 text-xs text-slate-500">{resendMessage}</p>}
         <Link to="/giris" className="mt-4 inline-block text-sm font-medium text-slate-900">
           Giriş sayfasına dön
         </Link>

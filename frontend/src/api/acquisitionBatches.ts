@@ -6,6 +6,7 @@ export interface AcquisitionBatchDto {
   totalCost: number;
   purchaseDate: string;
   notes: string | null;
+  closedAt: string | null;
   partCount: number;
   availableCount: number;
   soldCount: number;
@@ -44,4 +45,14 @@ export async function updateAcquisitionBatch(id: string, request: AcquisitionBat
 
 export async function deleteAcquisitionBatch(id: string): Promise<void> {
   await apiClient.delete(`/admin/acquisition-batches/${id}`);
+}
+
+export async function closeAcquisitionBatch(id: string): Promise<AcquisitionBatchDto> {
+  const { data } = await apiClient.patch<AcquisitionBatchDto>(`/admin/acquisition-batches/${id}/close`);
+  return data;
+}
+
+export async function reopenAcquisitionBatch(id: string): Promise<AcquisitionBatchDto> {
+  const { data } = await apiClient.patch<AcquisitionBatchDto>(`/admin/acquisition-batches/${id}/reopen`);
+  return data;
 }

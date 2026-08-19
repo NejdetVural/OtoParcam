@@ -7,6 +7,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.IdentityModel.Tokens;
 using OtoParcam.Application.AcquisitionBatches;
 using OtoParcam.Application.Auth;
+using OtoParcam.Application.Common;
 using OtoParcam.Application.Categories;
 using OtoParcam.Application.Dashboard;
 using OtoParcam.Application.Favorites;
@@ -40,6 +41,7 @@ public static class DependencyInjection
             .AddEntityFrameworkStores<ApplicationDbContext>()
             .AddDefaultTokenProviders();
 
+            services.AddScoped<IEmailSender, SmtpEmailSender>();
             services.AddScoped<IAuthService, AuthService>();
             services.AddScoped<ICategoryService, CategoryService>();
             services.AddScoped<IVehicleBrandService, VehicleBrandService>();

@@ -1,0 +1,21 @@
+# Shared at repo root since both Dockerfiles build with the repo root as context.
+
+# Backend
+**/bin/
+**/obj/
+**/.vs/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+
+# Local-only / never needed inside an image
+**/wwwroot/uploads/
+.git/
+.gitignore
+*.user
+*.env
+!.env.example
+database/
+docs/
+assets/

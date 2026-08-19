@@ -98,6 +98,7 @@ public class ReportService : IReportService
                     Source = batch.Source,
                     PurchaseDate = batch.PurchaseDate,
                     TotalCost = batch.TotalCost,
+                    IsClosed = batch.ClosedAt is not null,
                     PartCount = g.Count(),
                     AvailableCount = g.Count(p => p.Status == ProductStatus.Available),
                     SoldCount = g.Count(p => p.Status == ProductStatus.Sold),
@@ -107,6 +108,20 @@ public class ReportService : IReportService
                 };
             })
             .OrderByDescending(r => r.PurchaseDate)
+            .ToList();
+
+        var acquisitionSourceSummaries = acquisitionBatches
+            .GroupBy(b => b.Source)
+            .Select(g => new AcquisitionSourceSummaryRow
+            {
+                Source = g.Key,
+                BatchCount = g.Count(),
+                TotalCost = g.Sum(b => b.TotalCost),
+                PartCount = g.Sum(b => b.PartCount),
+                RevenueSoFar = g.Sum(b => b.RevenueSoFar),
+                ProfitSoFar = g.Sum(b => b.ProfitSoFar),
+            })
+            .OrderByDescending(r => r.TotalCost)
             .ToList();
 
         return new StatisticsReportData
@@ -126,6 +141,7 @@ public class ReportService : IReportService
             InventoryListValue = availableProductEntities.Sum(p => p.Price ?? 0),
             InventoryAcquisitionCost = availableProductEntities.Sum(p => EffectiveCost(p) ?? 0),
             AcquisitionBatches = acquisitionBatches,
+            AcquisitionSourceSummaries = acquisitionSourceSummaries,
         };
     }
 
@@ -340,6 +356,7 @@ public class ReportService : IReportService
                 table.ColumnsDefinition(columns =>
                 {
                     columns.RelativeColumn(3);
+                    columns.RelativeColumn(1);
                     columns.RelativeColumn(2);
                     columns.RelativeColumn(2);
                     columns.RelativeColumn(2);
@@ -349,6 +366,7 @@ public class ReportService : IReportService
                 table.Header(header =>
                 {
                     header.Cell().Element(HeaderCell).Text("Kaynak");
+                    header.Cell().Element(HeaderCell).Text("Durum");
                     header.Cell().Element(HeaderCell).AlignRight().Text("Toplam Maliyet");
                     header.Cell().Element(HeaderCell).AlignRight().Text("Parça (Satılan/Toplam)");
                     header.Cell().Element(HeaderCell).AlignRight().Text("Gelir");
@@ -359,10 +377,50 @@ public class ReportService : IReportService
                 {
                     var batch = data.AcquisitionBatches[i];
                     table.Cell().Element(c => BodyCell(c, i)).Text(batch.Source);
+                    table.Cell().Element(c => BodyCell(c, i)).Text(batch.IsClosed ? "Kapalı" : "Açık").FontColor(batch.IsClosed ? ColorMuted : ColorProfit);
                     table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(batch.TotalCost));
                     table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text($"{batch.SoldCount}/{batch.PartCount}");
                     table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(batch.RevenueSoFar));
                     table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(batch.ProfitSoFar)).FontColor(ProfitColor(batch.ProfitSoFar)).Bold();
+                }
+            });
+
+            // Same source name can span multiple separate batches (e.g. two different-priced "Ovalı" lots
+            // bought weeks apart) — this rolls those up so the combined profit for that source is visible,
+            // without merging the batches themselves above (each stays its own row/purchase).
+            col.Item().PaddingTop(4).Text("Kaynağa Göre Özet").FontSize(10).Bold().FontColor(ColorMuted);
+
+            col.Item().PaddingTop(6).Table(table =>
+            {
+                table.ColumnsDefinition(columns =>
+                {
+                    columns.RelativeColumn(3);
+                    columns.RelativeColumn(1);
+                    columns.RelativeColumn(2);
+                    columns.RelativeColumn(2);
+                    columns.RelativeColumn(2);
+                    columns.RelativeColumn(2);
+                });
+
+                table.Header(header =>
+                {
+                    header.Cell().Element(HeaderCell).Text("Kaynak");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Alım Sayısı");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Toplam Maliyet");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Toplam Parça");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Toplam Gelir");
+                    header.Cell().Element(HeaderCell).AlignRight().Text("Toplam Kar/Zarar");
+                });
+
+                for (var i = 0; i < data.AcquisitionSourceSummaries.Count; i++)
+                {
+                    var summary = data.AcquisitionSourceSummaries[i];
+                    table.Cell().Element(c => BodyCell(c, i)).Text(summary.Source);
+                    table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(summary.BatchCount.ToString());
+                    table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(summary.TotalCost));
+                    table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(summary.PartCount.ToString());
+                    table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(summary.RevenueSoFar));
+                    table.Cell().Element(c => BodyCell(c, i)).AlignRight().Text(FormatCurrency(summary.ProfitSoFar)).FontColor(ProfitColor(summary.ProfitSoFar)).Bold();
                 }
             });
         });

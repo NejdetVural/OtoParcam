@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import type { ProductDto } from "../../api/products";
-import { productStatusLabels, ProductStatus } from "../../api/types";
+import { productPositionLabels, productSideLabels, productStatusLabels, ProductStatus } from "../../api/types";
 import { resolveImageUrl } from "../../lib/images";
 import { Badge } from "../ui/Badge";
 import { FavoriteButton } from "./FavoriteButton";
@@ -36,9 +36,13 @@ export function ProductCard({ product }: { product: ProductDto }) {
         <FavoriteButton productId={product.id} className="absolute right-2 top-2 shadow-sm" />
       </div>
       <div className="flex flex-1 flex-col gap-1.5 p-3">
-        <span className="inline-flex w-fit items-center rounded-full bg-brand-800 px-2.5 py-0.5 text-xs font-semibold text-white">
-          {product.categoryName}
-        </span>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <span className="inline-flex w-fit items-center rounded-full bg-brand-800 px-2.5 py-0.5 text-xs font-semibold text-white">
+            {product.categoryName}
+          </span>
+          {product.side !== null && <Badge>{productSideLabels[product.side]}</Badge>}
+          {product.position !== null && <Badge>{productPositionLabels[product.position]}</Badge>}
+        </div>
         <h3 className="text-sm font-medium text-slate-900 group-hover:text-brand-700">{product.title}</h3>
         <span className="mt-auto pt-2 text-sm font-semibold text-slate-900">{formatPrice(product.price)}</span>
       </div>

@@ -8,6 +8,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.IdentityModel.Tokens;
 using OtoParcam.Application.Auth;
+using OtoParcam.Application.Common;
 using OtoParcam.Domain.Constants;
 using OtoParcam.Domain.Entities;
 
@@ -17,14 +18,22 @@ public class AuthService : IAuthService
 {
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IConfiguration _configuration;
+    private readonly IEmailSender _emailSender;
     private readonly ILogger<AuthService> _logger;
 
-    public AuthService(UserManager<ApplicationUser> userManager, IConfiguration configuration, ILogger<AuthService> logger)
+    public AuthService(
+        UserManager<ApplicationUser> userManager,
+        IConfiguration configuration,
+        IEmailSender emailSender,
+        ILogger<AuthService> logger)
     {
         _userManager = userManager;
         _configuration = configuration;
+        _emailSender = emailSender;
         _logger = logger;
     }
+
+    private string FrontendBaseUrl => (_configuration["App:FrontendBaseUrl"] ?? "http://localhost:5173").TrimEnd('/');
 
     public async Task<RegisterResult> RegisterAsync(RegisterRequest request, CancellationToken cancellationToken = default)
     {
@@ -57,14 +66,43 @@ public class AuthService : IAuthService
 
         await _userManager.AddToRoleAsync(user, Roles.Customer);
 
-        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
-        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
-
-        _logger.LogInformation(
-            "Email confirmation link for {Email}: GET /api/v1/auth/confirm-email?userId={UserId}&token={Token}",
-            user.Email, user.Id, encodedToken);
+        await SendConfirmationEmailAsync(user, cancellationToken);
 
         return RegisterResult.Success();
+    }
+
+    public async Task ResendConfirmationEmailAsync(ResendConfirmationRequest request, CancellationToken cancellationToken = default)
+    {
+        var user = await _userManager.FindByEmailAsync(request.Email);
+        if (user is null || user.EmailConfirmed)
+        {
+            // Don't reveal whether the account exists or is already confirmed.
+            return;
+        }
+
+        await SendConfirmationEmailAsync(user, cancellationToken);
+    }
+
+    private async Task SendConfirmationEmailAsync(ApplicationUser user, CancellationToken cancellationToken)
+    {
+        var token = await _userManager.GenerateEmailConfirmationTokenAsync(user);
+        var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var confirmLink = $"{FrontendBaseUrl}/onay?userId={user.Id}&token={encodedToken}";
+
+        _logger.LogInformation("Email confirmation link for {Email}: {Link}", user.Email, confirmLink);
+
+        await _emailSender.SendEmailAsync(
+            user.Email!,
+            "OtoParcam - E-posta Adresinizi Onaylayın",
+            $"""
+            <p>Merhaba {user.FirstName},</p>
+            <p>OtoParcam hesabınızı oluşturduğunuz için teşekkürler. Hesabınızla giriş yapabilmek için
+            önce e-posta adresinizi onaylamanız gerekiyor.</p>
+            <p><a href="{confirmLink}">E-posta adresimi onayla</a></p>
+            <p>Bağlantı çalışmıyorsa şu adresi tarayıcınıza yapıştırabilirsiniz:<br>{confirmLink}</p>
+            <p>Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz.</p>
+            """,
+            cancellationToken);
     }
 
     public async Task<LoginResult> LoginAsync(LoginRequest request, CancellationToken cancellationToken = default)
@@ -124,10 +162,22 @@ public class AuthService : IAuthService
 
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
         var encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token));
+        var resetLink = $"{FrontendBaseUrl}/sifre-sifirla?userId={user.Id}&token={encodedToken}";
 
-        _logger.LogInformation(
-            "Password reset link for {Email}: POST /api/v1/auth/reset-password with userId={UserId}&token={Token}",
-            user.Email, user.Id, encodedToken);
+        _logger.LogInformation("Password reset link for {Email}: {Link}", user.Email, resetLink);
+
+        await _emailSender.SendEmailAsync(
+            user.Email!,
+            "OtoParcam - Şifre Sıfırlama",
+            $"""
+            <p>Merhaba {user.FirstName},</p>
+            <p>OtoParcam hesabınız için bir şifre sıfırlama talebi aldık. Yeni bir şifre belirlemek için
+            aşağıdaki bağlantıya tıklayın.</p>
+            <p><a href="{resetLink}">Şifremi sıfırla</a></p>
+            <p>Bağlantı çalışmıyorsa şu adresi tarayıcınıza yapıştırabilirsiniz:<br>{resetLink}</p>
+            <p>Bu isteği siz yapmadıysanız bu e-postayı yok sayabilirsiniz, şifreniz değişmeyecektir.</p>
+            """,
+            cancellationToken);
     }
 
     public async Task<ResetPasswordResult> ResetPasswordAsync(ResetPasswordRequest request, CancellationToken cancellationToken = default)

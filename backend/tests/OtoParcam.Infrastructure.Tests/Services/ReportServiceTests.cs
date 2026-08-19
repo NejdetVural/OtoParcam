@@ -202,6 +202,37 @@ public class ReportServiceTests
     }
 
     [Fact]
+    public async Task GetStatisticsReportDataAsync_RollsUpTwoBatchesWithSameSourceIntoOneSummaryRow()
+    {
+        await using var context = CreateContext();
+        var (category, model) = SeedCatalog(context);
+
+        var firstWeek = CreateBatch("Ovalı", totalCost: 1000m, purchaseDate: DateTime.UtcNow.AddDays(-7));
+        var secondWeek = CreateBatch("Ovalı", totalCost: 2000m, purchaseDate: DateTime.UtcNow);
+        context.AcquisitionBatches.AddRange(firstWeek, secondWeek);
+
+        var soldFromFirst = CreateProduct(category, model, ProductStatus.Sold, acquisitionBatch: firstWeek);
+        var soldFromSecond = CreateProduct(category, model, ProductStatus.Sold, acquisitionBatch: secondWeek);
+        context.Products.AddRange(soldFromFirst, soldFromSecond);
+        CreateApprovedSale(context, soldFromFirst, originalPrice: 900m, negotiatedPrice: null);
+        CreateApprovedSale(context, soldFromSecond, originalPrice: 1800m, negotiatedPrice: null);
+        await context.SaveChangesAsync();
+
+        var service = new ReportService(context);
+        var data = await service.GetStatisticsReportDataAsync();
+
+        Assert.Equal(2, data.AcquisitionBatches.Count);
+
+        var summary = Assert.Single(data.AcquisitionSourceSummaries);
+        Assert.Equal("Ovalı", summary.Source);
+        Assert.Equal(2, summary.BatchCount);
+        Assert.Equal(3000m, summary.TotalCost);
+        Assert.Equal(2, summary.PartCount);
+        Assert.Equal(900m + 1800m, summary.RevenueSoFar);
+        Assert.Equal((900m - 1000m) + (1800m - 2000m), summary.ProfitSoFar);
+    }
+
+    [Fact]
     public async Task GetStatisticsReportDataAsync_PerPartOverrideWinsOverBatchSplit()
     {
         await using var context = CreateContext();

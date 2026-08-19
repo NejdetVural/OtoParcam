@@ -6,5 +6,7 @@ public interface IAcquisitionBatchService
     Task<AcquisitionBatchDto?> GetBatchByIdAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AcquisitionBatchResult> CreateBatchAsync(CreateAcquisitionBatchRequest request, CancellationToken cancellationToken = default);
     Task<AcquisitionBatchResult> UpdateBatchAsync(Guid id, UpdateAcquisitionBatchRequest request, CancellationToken cancellationToken = default);
+    Task<AcquisitionBatchResult> CloseBatchAsync(Guid id, CancellationToken cancellationToken = default);
+    Task<AcquisitionBatchResult> ReopenBatchAsync(Guid id, CancellationToken cancellationToken = default);
     Task<AcquisitionBatchDeleteResult> DeleteBatchAsync(Guid id, CancellationToken cancellationToken = default);
 }

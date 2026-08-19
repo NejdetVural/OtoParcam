@@ -8,6 +8,7 @@ public class AcquisitionBatch : BaseEntity
     public decimal TotalCost { get; set; }
     public DateTime PurchaseDate { get; set; }
     public string? Notes { get; set; }
+    public DateTime? ClosedAt { get; set; }
 
     // Navigation properties
     public ICollection<Product> Products { get; set; } = new List<Product>();

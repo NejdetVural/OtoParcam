@@ -91,6 +91,46 @@ public class AcquisitionBatchService : IAcquisitionBatchService
         return AcquisitionBatchResult.Success(BuildDto(batch, products));
     }
 
+    public async Task<AcquisitionBatchResult> CloseBatchAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var batch = await _dbContext.AcquisitionBatches.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (batch is null)
+        {
+            return AcquisitionBatchResult.NotFound();
+        }
+
+        if (batch.ClosedAt is not null)
+        {
+            return AcquisitionBatchResult.Conflict("Acquisition batch is already closed.");
+        }
+
+        batch.ClosedAt = DateTime.UtcNow;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var products = await GetProductsForBatchesAsync(new List<Guid> { id }, cancellationToken);
+        return AcquisitionBatchResult.Success(BuildDto(batch, products));
+    }
+
+    public async Task<AcquisitionBatchResult> ReopenBatchAsync(Guid id, CancellationToken cancellationToken = default)
+    {
+        var batch = await _dbContext.AcquisitionBatches.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
+        if (batch is null)
+        {
+            return AcquisitionBatchResult.NotFound();
+        }
+
+        if (batch.ClosedAt is null)
+        {
+            return AcquisitionBatchResult.Conflict("Acquisition batch is not closed.");
+        }
+
+        batch.ClosedAt = null;
+        await _dbContext.SaveChangesAsync(cancellationToken);
+
+        var products = await GetProductsForBatchesAsync(new List<Guid> { id }, cancellationToken);
+        return AcquisitionBatchResult.Success(BuildDto(batch, products));
+    }
+
     public async Task<AcquisitionBatchDeleteResult> DeleteBatchAsync(Guid id, CancellationToken cancellationToken = default)
     {
         var batch = await _dbContext.AcquisitionBatches.FirstOrDefaultAsync(b => b.Id == id, cancellationToken);
@@ -134,6 +174,7 @@ public class AcquisitionBatchService : IAcquisitionBatchService
             TotalCost = batch.TotalCost,
             PurchaseDate = batch.PurchaseDate,
             Notes = batch.Notes,
+            ClosedAt = batch.ClosedAt,
             PartCount = partCount,
             AvailableCount = products.Count(p => p.Status == ProductStatus.Available),
             SoldCount = products.Count(p => p.Status == ProductStatus.Sold),

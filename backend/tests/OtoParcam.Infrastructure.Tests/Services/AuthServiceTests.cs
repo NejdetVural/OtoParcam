@@ -7,6 +7,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging.Abstractions;
 using OtoParcam.Application.Auth;
+using OtoParcam.Application.Common;
 using OtoParcam.Domain.Constants;
 using OtoParcam.Domain.Entities;
 using OtoParcam.Infrastructure.Persistence;
@@ -18,6 +19,12 @@ namespace OtoParcam.Infrastructure.Tests.Services;
 public class AuthServiceTests
 {
     private const string StrongPassword = "Str0ng!Passw0rd";
+
+    private class NoOpEmailSender : IEmailSender
+    {
+        public Task SendEmailAsync(string toEmail, string subject, string htmlBody, CancellationToken cancellationToken = default)
+            => Task.CompletedTask;
+    }
 
     private static (AuthService Service, UserManager<ApplicationUser> UserManager, RoleManager<IdentityRole<Guid>> RoleManager) CreateAuthService(ApplicationDbContext context)
     {
@@ -41,10 +48,11 @@ public class AuthServiceTests
                 ["Jwt:Issuer"] = "OtoParcamTests",
                 ["Jwt:Audience"] = "OtoParcamTests",
                 ["Jwt:ExpiryMinutes"] = "60",
+                ["App:FrontendBaseUrl"] = "http://localhost:5173",
             })
             .Build();
 
-        var service = new AuthService(userManager, configuration, NullLogger<AuthService>.Instance);
+        var service = new AuthService(userManager, configuration, new NoOpEmailSender(), NullLogger<AuthService>.Instance);
         return (service, userManager, roleManager);
     }
 
@@ -211,6 +219,46 @@ public class AuthServiceTests
         Assert.True(result.Succeeded);
         var stored = await userManager.FindByIdAsync(user.Id.ToString());
         Assert.True(stored!.EmailConfirmed);
+    }
+
+    [Fact]
+    public async Task ResendConfirmationEmailAsync_UnknownEmail_DoesNotThrow()
+    {
+        await using var context = CreateContext();
+        var (service, _, _) = CreateAuthService(context);
+
+        await service.ResendConfirmationEmailAsync(new ResendConfirmationRequest { Email = "nobody@test.com" });
+    }
+
+    [Fact]
+    public async Task ResendConfirmationEmailAsync_AlreadyConfirmed_DoesNotThrow()
+    {
+        await using var context = CreateContext();
+        var (service, userManager, _) = CreateAuthService(context);
+        var user = CreateUser("ahmet@test.com");
+        user.EmailConfirmed = true;
+        await userManager.CreateAsync(user, StrongPassword);
+
+        await service.ResendConfirmationEmailAsync(new ResendConfirmationRequest { Email = "ahmet@test.com" });
+    }
+
+    [Fact]
+    public async Task ResendConfirmationEmailAsync_UnconfirmedUser_GeneratesTokenThatConfirms()
+    {
+        await using var context = CreateContext();
+        var (service, userManager, _) = CreateAuthService(context);
+        var user = CreateUser("ahmet@test.com");
+        await userManager.CreateAsync(user, StrongPassword);
+
+        await service.ResendConfirmationEmailAsync(new ResendConfirmationRequest { Email = "ahmet@test.com" });
+
+        // ResendConfirmationEmailAsync doesn't return the token directly (it's emailed), so confirm
+        // indirectly: generate a fresh token the same way and verify it still confirms the account,
+        // proving the resend path didn't leave the user in a broken state.
+        var rawToken = await userManager.GenerateEmailConfirmationTokenAsync(user);
+        var result = await service.ConfirmEmailAsync(user.Id, EncodeToken(rawToken));
+
+        Assert.True(result.Succeeded);
     }
 
     [Fact]

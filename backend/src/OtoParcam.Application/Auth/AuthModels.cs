@@ -62,6 +62,12 @@ public class ConfirmEmailResult
     public static ConfirmEmailResult Failure(IEnumerable<string> errors) => new() { Succeeded = false, Errors = errors.ToArray() };
 }
 
+public class ResendConfirmationRequest
+{
+    [Required, EmailAddress]
+    public string Email { get; set; } = string.Empty;
+}
+
 public class ForgotPasswordRequest
 {
     [Required, EmailAddress]
@@ -88,3 +94,4 @@ public class ResetPasswordResult
     public static ResetPasswordResult Success() => new() { Succeeded = true };
     public static ResetPasswordResult Failure(IEnumerable<string> errors) => new() { Succeeded = false, Errors = errors.ToArray() };
 }
+            
